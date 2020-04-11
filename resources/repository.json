@@ -1,0 +1,29 @@
+[
+  {
+    "id": "repository.github.i96751414",
+    "username": "i96751414"
+  },
+  {
+    "id": "plugin.video.torrest",
+    "username": "i96751414",
+    "assets": {
+      "zip": "https://github.com/{username}/{repository}/releases/download/v{version}/{id}-{version}.{system}_{arch}.zip"
+    }
+  },
+  {
+    "id": "plugin.video.flix",
+    "username": "i96751414"
+  },
+  {
+    "id": "script.flix.dummy",
+    "username": "i96751414"
+  },
+  {
+    "id": "plugin.image.pdfreader",
+    "username": "i96751414"
+  },
+  {
+    "id": "service.subtitles.customizer",
+    "username": "i96751414"
+  }
+]

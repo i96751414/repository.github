@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="repository.github.i96751414" name="i96751414 Add-on repository" provider-name="i96751414" version="0.0.1">
+    <requires>
+        <import addon="xbmc.python" version="2.24.0"/>
+        <import addon="script.module.requests" version="2.22.0"/>
+    </requires>
+    <extension point="xbmc.service" library="service.py"/>
+    <extension point="xbmc.addon.repository">
+        <info>http://127.0.0.1:61234/addons.xml</info>
+        <checksum>http://127.0.0.1:61234/addons.xml.md5</checksum>
+        <datadir>http://127.0.0.1:61234/</datadir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <platform>all</platform>
+        <license>See https://github.com/i96751414/repository.github.i96751414/blob/master/LICENSE</license>
+        <source>https://github.com/i96751414/repository.github.i96751414</source>
+        <summary lang="en">i96751414 GitHub Repository</summary>
+        <description lang="en">GitHub repository for i96751414 add-ons updates.</description>
+        <platform>all</platform>
+        <news>
+            - Initial release
+        </news>
+        <assets>
+        </assets>
+    </extension>
+</addon>

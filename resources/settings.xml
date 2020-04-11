@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <!-- General -->
+    <category label="30000">
+        <setting id="repository_port" type="number" label="30001" default="61234"/>
+    </category>
+</settings>
