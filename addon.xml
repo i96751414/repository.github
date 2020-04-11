@@ -4,12 +4,12 @@
         <import addon="xbmc.python" version="2.24.0"/>
         <import addon="script.module.requests" version="2.22.0"/>
     </requires>
-    <extension point="xbmc.service" library="service.py"/>
     <extension point="xbmc.addon.repository">
         <info>http://127.0.0.1:61234/addons.xml</info>
         <checksum>http://127.0.0.1:61234/addons.xml.md5</checksum>
         <datadir>http://127.0.0.1:61234/</datadir>
     </extension>
+    <extension point="xbmc.service" library="service.py"/>
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
         <license>See https://github.com/i96751414/repository.github.i96751414/blob/master/LICENSE</license>
