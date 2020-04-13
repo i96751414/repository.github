@@ -38,6 +38,11 @@ class Repository(object):
         with open(path) as f:
             self.load_data(json.load(f))
 
+    def load_url(self, url):
+        r = requests.get(url)
+        r.raise_for_status()
+        self.load_data(r.json())
+
     def load_data(self, data):
         # Required: id, username
         # Optional: branch, assets, asset_prefix, repository
