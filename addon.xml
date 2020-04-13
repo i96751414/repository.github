@@ -21,6 +21,7 @@
             - Initial release
         </news>
         <assets>
+            <icon>icon.png</icon>
         </assets>
     </extension>
 </addon>
