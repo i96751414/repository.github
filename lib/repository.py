@@ -71,15 +71,20 @@ class Repository(object):
 
     @cached(seconds=60 * 60)
     def get_addons_xml(self):
-        pool = ThreadPool(self._max_threads)
-        results = pool.map(self._get_addon_xml, self._addons.values())
         root = ElementTree.Element("addons")
+        num_threads = min(self._max_threads, len(self._addons))
+        if num_threads <= 1:
+            results = [self._get_addon_xml(a) for a in self._addons.values()]
+        else:
+            pool = ThreadPool(num_threads)
+            results = pool.map(self._get_addon_xml, self._addons.values())
+            pool.close()
+            pool.join()
+
         for result in results:
             if result is not None:
                 root.append(result)
 
-        pool.close()
-        pool.join()
         return ElementTree.tostring(root, encoding="utf-8", method="xml")
 
     def get_addons_xml_md5(self):
