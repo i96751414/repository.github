@@ -9,6 +9,7 @@ from xml.etree import ElementTree
 import requests
 
 from lib.cache import cached
+from lib.kodi import string_types
 from lib.os_platform import PLATFORM
 
 ADDON = namedtuple("ADDON", "id username branch assets asset_prefix repository")
@@ -19,33 +20,74 @@ GITHUB_LATEST_RELEASE_URL = GITHUB_RELEASES_URL + "/latest"
 GITHUB_RELEASE_URL = GITHUB_RELEASES_URL + "/{release}"
 GITHUB_ZIP_URL = "https://github.com/{username}/{repository}/archive/{branch}.zip"
 
+ENTRY_SCHEMA = {
+    "required": ["id", "username"],
+    "properties": {
+        "id": {"type": string_types},
+        "username": {"type": string_types},
+        "branch": {"type": string_types},
+        "assets": {"type": dict},
+        "asset_prefix": {"type": string_types},
+        "repository": {"type": string_types},
+    }
+}
 
-@cached(seconds=60 * 60)
-def get_latest_release(username, repository, default="master"):
-    r = requests.get(GITHUB_LATEST_RELEASE_URL.format(username=username, repository=repository))
-    try:
-        return r.json()["target_commitish"]
-    except KeyError:
-        return default
+
+class InvalidSchemaError(Exception):
+    pass
+
+
+def validate_entry_schema(entry):
+    if not isinstance(entry, dict):
+        raise InvalidSchemaError("Expecting dictionary for entry")
+    for key in ENTRY_SCHEMA["required"]:
+        if key not in entry:
+            raise InvalidSchemaError("Key '{}' is required".format(key))
+    for key, value in entry.items():
+        if key not in ENTRY_SCHEMA["properties"]:
+            raise InvalidSchemaError("Key '{}' is not valid".format(key))
+        value_type = ENTRY_SCHEMA["properties"][key]["type"]
+        if not isinstance(value, value_type):
+            raise InvalidSchemaError("Expected type {} for '{}'".format(value_type.__name__, key))
+        if value_type is dict:
+            for k, v in value.items():
+                if not (isinstance(k, string_types) and isinstance(v, string_types)):
+                    raise InvalidSchemaError("Expected dict[str, str] for '{}'".format(key))
+
+
+def validate_json_schema(data):
+    if not isinstance(data, (list, tuple)):
+        raise InvalidSchemaError("Expecting list/tuple for data")
+    for entry in data:
+        validate_entry_schema(entry)
 
 
 class Repository(object):
-    def __init__(self, max_threads=5):
+    def __init__(self, **kwargs):
+        self.files = kwargs.get("files", [])
+        self.urls = kwargs.get("urls", [])
+        self._max_threads = kwargs.get("max_threads", 5)
         self._addons = OrderedDict()
-        self._max_threads = max_threads
+        self.update()
 
-    def load_file(self, path):
+    def update(self, clear=False):
+        if clear:
+            self._addons.clear()
+        for u in self.urls:
+            self._load_url(u)
+        for f in self.files:
+            self._load_file(f)
+
+    def _load_file(self, path):
         with open(path) as f:
-            self.load_data(json.load(f))
+            self._load_data(json.load(f))
 
-    def load_url(self, url):
+    def _load_url(self, url):
         r = requests.get(url)
         r.raise_for_status()
-        self.load_data(r.json())
+        self._load_data(r.json())
 
-    def load_data(self, data):
-        # Required: id, username
-        # Optional: branch, assets, asset_prefix, repository
+    def _load_data(self, data):
         for addon_data in data:
             addon_id = addon_data["id"]
             self._addons[addon_id] = ADDON(
@@ -53,20 +95,31 @@ class Repository(object):
                 assets=addon_data.get("assets", {}), asset_prefix=addon_data.get("asset_prefix", ""),
                 repository=addon_data.get("repository", addon_id))
 
-    @staticmethod
-    def _get_addon_xml(addon):
+    def clear_cache(self):
+        self.get_addons_xml.cache_clear()
+        self.get_latest_release.cache_clear()
+
+    @cached(seconds=60 * 60)
+    def get_latest_release(self, username, repository, default="master"):
+        r = requests.get(GITHUB_LATEST_RELEASE_URL.format(username=username, repository=repository))
+        try:
+            return r.json()["target_commitish"]
+        except KeyError:
+            return default
+
+    def _get_addon_xml(self, addon):
         try:
             addon_xml_url = addon.assets["addon.xml"]
         except KeyError:
             addon_xml_url = GITHUB_CONTENT_URL.format(
                 username=addon.username, repository=addon.repository,
-                branch=addon.branch or get_latest_release(addon.username, addon.repository),
+                branch=addon.branch or self.get_latest_release(addon.username, addon.repository),
             ) + "/addon.xml"
 
         try:
             return ElementTree.fromstring(requests.get(addon_xml_url).content)
         except Exception as e:
-            logging.error(e, exc_info=True)
+            logging.error("failed getting '%s': %s", addon.id, e, exc_info=True)
             return None
 
     @cached(seconds=60 * 60)
@@ -97,7 +150,7 @@ class Repository(object):
         if addon is None:
             return None
         formats = {"id": addon.id, "username": addon.username, "repository": addon.repository,
-                   "branch": addon.branch or get_latest_release(addon.username, addon.repository),
+                   "branch": addon.branch or self.get_latest_release(addon.username, addon.repository),
                    "system": PLATFORM.system, "arch": PLATFORM.arch}
         match = re.match(addon_id + r"-(.+?)\.zip$", asset)
         if match:

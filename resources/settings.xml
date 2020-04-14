@@ -3,5 +3,8 @@
     <!-- General -->
     <category label="30000">
         <setting id="repository_port" type="number" label="30001" default="61234"/>
+        <setting label="30002" type="action" action="RunScript(repository.github.i96751414, import_entries)"/>
+        <setting label="30003" type="action" action="RunScript(repository.github.i96751414, delete_entries)"/>
+        <setting label="30004" type="action" action="RunScript(repository.github.i96751414, clear_entries)"/>
     </category>
 </settings>

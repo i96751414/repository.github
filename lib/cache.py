@@ -41,12 +41,12 @@ def _make_key(args, kwds, typed, kwd_mark=(object(),), fast_types=(int, str)):
 
 def cached(seconds=60 * 60, max_size=128, typed=False):
     def wrapper(func):
+        cache = {}
+
         if max_size == 0:
             # no caching
             new_func = func
         else:
-            cache = {}
-
             @wraps(func)
             def new_func(*args, **kwargs):
                 key = _make_key(args, kwargs, typed)
@@ -64,6 +64,10 @@ def cached(seconds=60 * 60, max_size=128, typed=False):
 
                 return result
 
+        def cache_clear():
+            cache.clear()
+
+        new_func.cache_clear = cache_clear
         return new_func
 
     return wrapper

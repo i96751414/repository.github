@@ -7,12 +7,14 @@ import xbmc
 
 from lib.httpserver import ThreadedHTTPServer, ServerHandler
 from lib.kodi import ADDON_PATH, get_repository_port, set_logger
-from lib.routes import route_get_addons, route_get_addons_md5, route_get_assets
+from lib.routes import route_get_addons, route_get_addons_md5, route_get_assets, route_update, repository
+from lib.entries import ENTRIES_PATH
 
 # Register routes
 ServerHandler.add_get_route("/addons.xml", route_get_addons)
 ServerHandler.add_get_route("/addons.xml.md5", route_get_addons_md5)
 ServerHandler.add_get_route("/{w}/{p}", route_get_assets)
+ServerHandler.add_get_route("/update", route_update)
 
 
 def update_repository_port(port, xml_path=os.path.join(ADDON_PATH, "addon.xml")):
@@ -59,6 +61,8 @@ class HTTPServerRunner(threading.Thread):
 
 def run():
     set_logger(level=logging.INFO)
+    repository.files = [ENTRIES_PATH, os.path.join(ADDON_PATH, "resources", "repository.json")]
+    repository.update()
     monitor = ServiceMonitor()
     server = HTTPServerRunner(monitor, get_repository_port())
     server.start()

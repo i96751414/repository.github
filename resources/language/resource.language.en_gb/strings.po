@@ -25,3 +25,27 @@ msgstr ""
 msgctxt "#30001"
 msgid "Repository Port"
 msgstr ""
+
+msgctxt "#30002"
+msgid "Import entries"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Delete entries"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Delete all entries"
+msgstr ""
+
+msgctxt "#30005"
+msgid "No entries to delete"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Entries deleted"
+msgstr ""
+
+msgctxt "#30007"
+msgid "Entries imported"
+msgstr ""

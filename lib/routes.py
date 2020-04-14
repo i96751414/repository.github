@@ -1,10 +1,7 @@
-import os
-
 from lib.httpserver import ServerHandler
 from lib.repository import Repository
 
 repository = Repository()
-repository.load_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "resources", "repository.json"))
 
 
 def route_get_addons(ctx):
@@ -12,7 +9,7 @@ def route_get_addons(ctx):
     xml = repository.get_addons_xml()
     ctx.send_response(200)
     ctx.send_header("Content-Type", "application/xml")
-    ctx.send_header('Content-Length', len(xml))
+    ctx.send_header("Content-Length", str(len(xml)))
     ctx.end_headers()
     ctx.wfile.write(xml)
 
@@ -22,7 +19,7 @@ def route_get_addons_md5(ctx):
     hash_md5 = repository.get_addons_xml_md5()
     ctx.send_response(200)
     ctx.send_header("Content-Type", "text/plain")
-    ctx.send_header('Content-Length', len(hash_md5))
+    ctx.send_header("Content-Length", str(len(hash_md5)))
     ctx.end_headers()
     ctx.wfile.write(hash_md5)
 
@@ -35,4 +32,12 @@ def route_get_assets(ctx, addon_id, asset):
     else:
         ctx.send_response(301)
         ctx.send_header("Location", url)
+    ctx.end_headers()
+
+
+def route_update(ctx):
+    # type: (ServerHandler) -> None
+    repository.update()
+    repository.clear_cache()
+    ctx.send_response(200)
     ctx.end_headers()
