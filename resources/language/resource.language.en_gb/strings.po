@@ -1,6 +1,6 @@
 # Kodi Media Center language file
 # Addon Name: i96751414 Repository
-# Addon id: repository.github.i96751414
+# Addon id: repository.github
 # Addon Provider: i96751414
 #
 msgid ""
