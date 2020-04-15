@@ -74,8 +74,10 @@ class Entries(object):
                 self._ids.append(addon_id)
 
 
-def update_repository():
+def update_repository(notify=False):
     requests.get("http://127.0.0.1:{}/update".format(get_repository_port()), timeout=2)
+    if notify:
+        notification(translate(30013))
 
 
 def import_entries():
@@ -85,13 +87,13 @@ def import_entries():
         entries.add_entries_from_file(path)
         entries.save()
         update_repository()
-        notification(translate(30007))
+        notification(translate(30012))
 
 
 def delete_entries():
     entries = Entries()
     if entries.length() == 0:
-        notification(translate(30005))
+        notification(translate(30010))
     else:
         selected = xbmcgui.Dialog().multiselect(translate(30003), entries.ids)
         if selected:
@@ -99,36 +101,37 @@ def delete_entries():
                 entries.remove(index)
             entries.save()
             update_repository()
-            notification(translate(30006))
+            notification(translate(30011))
 
 
 def clear_entries():
     entries = Entries()
     if entries.length() == 0:
-        notification(translate(30005))
+        notification(translate(30010))
     else:
         entries.clear()
         entries.save()
         update_repository()
-        notification(translate(30006))
+        notification(translate(30011))
 
 
 def run():
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 1:
+        selected = xbmcgui.Dialog().select(ADDON_NAME, [translate(30002 + i) for i in range(4)])
+    elif len(sys.argv) == 2:
         method = sys.argv[1]
-        if method == "import_entries":
-            import_entries()
-        elif method == "delete_entries":
-            delete_entries()
-        elif method == "clear_entries":
-            clear_entries()
-        else:
+        try:
+            selected = ("import_entries", "delete_entries", "clear_entries", "update_repository").index(method)
+        except ValueError:
             raise NotImplementedError("Unknown method '{}'".format(method))
     else:
-        selected = xbmcgui.Dialog().select(ADDON_NAME, [translate(30002), translate(30003), translate(30004)])
-        if selected == 0:
-            import_entries()
-        elif selected == 1:
-            delete_entries()
-        elif selected == 2:
-            clear_entries()
+        raise NotImplementedError("Unknown arguments")
+
+    if selected == 0:
+        import_entries()
+    elif selected == 1:
+        delete_entries()
+    elif selected == 2:
+        clear_entries()
+    elif selected == 3:
+        update_repository(True)
