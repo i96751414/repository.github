@@ -2,8 +2,8 @@ import json
 import logging
 import re
 from collections import namedtuple, OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
-from multiprocessing.pool import ThreadPool
 from xml.etree import ElementTree
 
 import requests
@@ -129,10 +129,8 @@ class Repository(object):
         if num_threads <= 1:
             results = [self._get_addon_xml(a) for a in self._addons.values()]
         else:
-            pool = ThreadPool(num_threads)
-            results = pool.map(self._get_addon_xml, self._addons.values())
-            pool.close()
-            pool.join()
+            with ThreadPoolExecutor(num_threads) as pool:
+                results = list(pool.map(self._get_addon_xml, self._addons.values()))
 
         for result in results:
             if result is not None:

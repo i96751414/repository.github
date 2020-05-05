@@ -3,6 +3,7 @@
     <requires>
         <import addon="xbmc.python" version="2.24.0"/>
         <import addon="script.module.requests" version="2.22.0"/>
+        <import addon="script.module.futures" version="2.2.0" optional="true"/>
     </requires>
     <extension point="xbmc.addon.repository">
         <info>http://127.0.0.1:61234/addons.xml</info>
