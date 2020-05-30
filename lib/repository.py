@@ -101,9 +101,9 @@ class Repository(object):
 
     @cached(seconds=60 * 60)
     def get_latest_release(self, username, repository, default="master"):
-        r = requests.get(GITHUB_LATEST_RELEASE_URL.format(username=username, repository=repository))
+        data = requests.get(GITHUB_LATEST_RELEASE_URL.format(username=username, repository=repository)).json()
         try:
-            return r.json()["target_commitish"]
+            return data["tag_name"]
         except KeyError:
             return default
 
