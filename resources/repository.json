@@ -1,7 +1,10 @@
 [
   {
     "id": "repository.github",
-    "username": "i96751414"
+    "username": "i96751414",
+    "assets": {
+      "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
+    }
   },
   {
     "id": "plugin.video.torrest",
@@ -12,18 +15,23 @@
   },
   {
     "id": "plugin.video.flix",
-    "username": "i96751414"
-  },
-  {
-    "id": "script.flix.dummy",
-    "username": "i96751414"
+    "username": "i96751414",
+    "assets": {
+      "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
+    }
   },
   {
     "id": "plugin.image.pdfreader",
-    "username": "i96751414"
+    "username": "i96751414",
+    "assets": {
+      "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
+    }
   },
   {
     "id": "service.subtitles.customizer",
-    "username": "i96751414"
+    "username": "i96751414",
+    "assets": {
+      "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
+    }
   }
 ]
