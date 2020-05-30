@@ -61,7 +61,7 @@ class HTTPServerRunner(threading.Thread):
 
 def run():
     set_logger(level=logging.INFO)
-    repository.files = [ENTRIES_PATH, os.path.join(ADDON_PATH, "resources", "repository.json")]
+    repository.files = [os.path.join(ADDON_PATH, "resources", "repository.json"), ENTRIES_PATH]
     repository.update()
     monitor = ServiceMonitor()
     server = HTTPServerRunner(monitor, get_repository_port())
