@@ -5,10 +5,10 @@ from xml.etree import ElementTree
 
 import xbmc
 
+from lib.entries import ENTRIES_PATH
 from lib.httpserver import ThreadedHTTPServer, ServerHandler
 from lib.kodi import ADDON_PATH, get_repository_port, set_logger
 from lib.routes import route_get_addons, route_get_addons_md5, route_get_assets, route_update, repository
-from lib.entries import ENTRIES_PATH
 
 # Register routes
 ServerHandler.add_get_route("/addons.xml", route_get_addons)
@@ -60,7 +60,7 @@ class HTTPServerRunner(threading.Thread):
 
 
 def run():
-    set_logger(level=logging.INFO)
+    set_logger()
     repository.files = [os.path.join(ADDON_PATH, "resources", "repository.json"), ENTRIES_PATH]
     repository.update()
     monitor = ServiceMonitor()
