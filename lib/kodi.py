@@ -18,7 +18,6 @@ else:
     # noinspection PyUnresolvedReferences
     string_types = basestring  # noqa
 
-
     def translate(*args, **kwargs):
         return ADDON.getLocalizedString(*args, **kwargs).encode("utf-8")
 

@@ -35,11 +35,13 @@ class ServerHandler(BaseHTTPRequestHandler):
 
     # noinspection PyPep8Naming
     def do_GET(self):
+        self._handle_request(self.get_routes)
+
+    def _handle_request(self, routes):
         try:
-            # noinspection PyAttributeOutsideInit
             self.url = urlparse.urlsplit(self.path)
             self.request = dict(urlparse.parse_qsl(self.url.query))
-            for pattern, handler in self.get_routes:
+            for pattern, handler in routes:
                 match = pattern.match(self.url.path)
                 if match:
                     handler(self, *match.groups())
@@ -84,3 +86,15 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
             self.handle_request()
 
         self.__is_shut_down.set()
+
+
+def threaded_http_server(host, port):
+    return ThreadedHTTPServer((host, port), ServerHandler)
+
+
+def add_get_route(pattern):
+    def wrapper(func):
+        ServerHandler.add_get_route(pattern, func)
+        return func
+
+    return wrapper

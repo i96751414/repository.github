@@ -5,16 +5,9 @@ from xml.etree import ElementTree
 
 import xbmc
 
-from lib.entries import ENTRIES_PATH
-from lib.httpserver import ThreadedHTTPServer, ServerHandler
+from lib import routes  # noqa
+from lib.httpserver import threaded_http_server
 from lib.kodi import ADDON_PATH, get_repository_port, set_logger
-from lib.routes import route_get_addons, route_get_addons_md5, route_get_assets, route_update, repository
-
-# Register routes
-ServerHandler.add_get_route("/addons.xml", route_get_addons)
-ServerHandler.add_get_route("/addons.xml.md5", route_get_addons_md5)
-ServerHandler.add_get_route("/{w}/{p}", route_get_assets)
-ServerHandler.add_get_route("/update", route_update)
 
 
 def update_repository_port(port, xml_path=os.path.join(ADDON_PATH, "addon.xml")):
@@ -46,23 +39,20 @@ class HTTPServerRunner(threading.Thread):
         super(HTTPServerRunner, self).__init__()
 
     def run(self):
-        self._server = ThreadedHTTPServer(("", self._port), ServerHandler)
+        self._server = threaded_http_server("", self._port)
         self._server.daemon_threads = True
-
         logging.debug("Server started at port {}".format(self._port))
-
         self._server.serve_until_shutdown(self._monitor.abortRequested)
         self._server.server_close()
 
     def stop(self):
         if self._server is not None:
             self._server.shutdown_server()
+            self._server = None
 
 
 def run():
     set_logger()
-    repository.files = [os.path.join(ADDON_PATH, "resources", "repository.json"), ENTRIES_PATH]
-    repository.update()
     monitor = ServiceMonitor()
     server = HTTPServerRunner(monitor, get_repository_port())
     server.start()
