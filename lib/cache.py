@@ -39,7 +39,7 @@ def _make_key(args, kwds, typed, kwd_mark=(object(),), fast_types=(int, str)):
     return _HashedSeq(key)
 
 
-def cached(seconds=60 * 60, max_size=128, typed=False):
+def cached(seconds=60 * 60, max_size=128, typed=False, lru=False):
     def wrapper(func):
         cache = {}
 
@@ -58,8 +58,10 @@ def cached(seconds=60 * 60, max_size=128, typed=False):
                         del cache[min_key]
 
                     result = func(*args, **kwargs)
-                    cache[key] = (time.time(), result)
+                    cache[key] = [time.time(), result]
                 else:
+                    if lru:
+                        cache_entry[0] = time.time()
                     result = cache_entry[1]
 
                 return result
