@@ -33,5 +33,12 @@
     "assets": {
       "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
     }
+  },
+  {
+    "id": "script.module.cached",
+    "username": "i96751414",
+    "assets": {
+      "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
+    }
   }
 ]
