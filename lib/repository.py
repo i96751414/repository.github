@@ -107,14 +107,16 @@ class Repository(object):
         except KeyError:
             return default
 
+    def _get_addon_branch(self, addon):
+        return addon.branch or self.get_latest_release(addon.username, addon.repository)
+
     def _get_addon_xml(self, addon):
         try:
             addon_xml_url = addon.assets["addon.xml"]
         except KeyError:
             addon_xml_url = GITHUB_CONTENT_URL.format(
                 username=addon.username, repository=addon.repository,
-                branch=addon.branch or self.get_latest_release(addon.username, addon.repository),
-            ) + "/addon.xml"
+                branch=self._get_addon_branch(addon)) + "/addon.xml"
 
         try:
             return ElementTree.fromstring(requests.get(addon_xml_url).content)
@@ -148,8 +150,7 @@ class Repository(object):
         if addon is None:
             return None
         formats = {"id": addon.id, "username": addon.username, "repository": addon.repository,
-                   "branch": addon.branch or self.get_latest_release(addon.username, addon.repository),
-                   "system": PLATFORM.system, "arch": PLATFORM.arch}
+                   "branch": self._get_addon_branch(addon), "system": PLATFORM.system, "arch": PLATFORM.arch}
         match = re.match(addon_id + r"-(.+?)\.zip$", asset)
         if match:
             formats["version"] = match.group(1)
