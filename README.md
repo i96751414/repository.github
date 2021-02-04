@@ -11,7 +11,12 @@ It works by setting a HTTP server which has the following endpoints:
 |http://127.0.0.1:{port}/{addon_id}/{asset_path}|Endpoint for serving add-ons assets/zips|
 |http://127.0.0.1:{port}/update|Endpoint for updating repository entries and clearing caches|
 
-##  Add-on entries
+## Installation
+
+Get the [latest release](https://github.com/i96751414/repository.github/releases/latest) from github.
+Then, [install from zip](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file) within [Kodi](https://kodi.tv/).
+
+## Add-on entries
 
 In order to know which repositories to proxy, the virtual repository needs to be provided with a _list of add-on entries_.
 An example can be found [here](https://raw.githubusercontent.com/i96751414/repository.github/master/resources/repository.json).
