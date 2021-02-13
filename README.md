@@ -1,5 +1,7 @@
 # Kodi GitHub virtual repository
 
+[![Build Status](https://github.com/i96751414/repository.github/workflows/build/badge.svg)](https://github.com/i96751414/repository.github/actions?query=workflow%3Abuild)
+
 This add-on creates a virtual repository for Kodi. This way, one does not need to use a GitHub repository for storing add-ons zips when all that information is already accessible from each add-on repository.
 
 It works by setting a HTTP server which has the following endpoints:
