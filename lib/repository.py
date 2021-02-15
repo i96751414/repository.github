@@ -4,9 +4,10 @@ import re
 from collections import namedtuple, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
-from xml.etree import ElementTree
+from xml.etree.ElementTree import Element  # nosec
 
 import requests
+from defusedxml import ElementTree
 
 from lib.cache import cached
 from lib.kodi import string_types
@@ -126,7 +127,7 @@ class Repository(object):
 
     @cached(seconds=60 * 60)
     def get_addons_xml(self):
-        root = ElementTree.Element("addons")
+        root = Element("addons")
         num_threads = min(self._max_threads, len(self._addons))
         if num_threads <= 1:
             results = [self._get_addon_xml(a) for a in self._addons.values()]

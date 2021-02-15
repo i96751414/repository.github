@@ -59,7 +59,9 @@ class ServerHandler(BaseHTTPRequestHandler):
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    """Handle requests in a separate thread."""
+    """
+    Handle requests in a separate thread.
+    """
 
     def __init__(self, *args, **kwargs):
         self.__shutdown_request = threading.Event()
@@ -73,8 +75,10 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
     def serve_until_shutdown(self, should_stop=None, timeout=2):
         if should_stop is None:
-            def should_stop():
+            def _should_stop():
                 return False
+
+            should_stop = _should_stop
 
         if timeout is not None:
             self.timeout = timeout
