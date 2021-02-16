@@ -2,7 +2,6 @@
 
 import logging
 import re
-import threading
 
 try:
     import urlparse
@@ -27,6 +26,7 @@ def _generate_pattern(s):
 
 
 class ServerHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.0"
     get_routes = []
 
     @classmethod
@@ -55,41 +55,14 @@ class ServerHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def log_message(self, fmt, *args):
-        logging.info(fmt % args)
+        logging.debug(fmt, *args)
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """
     Handle requests in a separate thread.
     """
-
-    def __init__(self, *args, **kwargs):
-        self.__shutdown_request = threading.Event()
-        self.__is_shut_down = threading.Event()
-        self.__is_shut_down.set()
-        HTTPServer.__init__(self, *args, **kwargs)
-
-    def shutdown_server(self):
-        self.__shutdown_request.set()
-        self.__is_shut_down.wait()
-
-    def serve_until_shutdown(self, should_stop=None, timeout=2):
-        if should_stop is None:
-            def _should_stop():
-                return False
-
-            should_stop = _should_stop
-
-        if timeout is not None:
-            self.timeout = timeout
-
-        self.__is_shut_down.clear()
-        self.__shutdown_request.clear()
-
-        while not (self.__shutdown_request.is_set() or should_stop()):
-            self.handle_request()
-
-        self.__is_shut_down.set()
+    daemon_threads = True
 
 
 def threaded_http_server(host, port):

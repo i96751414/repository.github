@@ -20,9 +20,9 @@ def update_repository_port(port, xml_path=os.path.join(ADDON_PATH, "addon.xml"))
 
 
 class ServiceMonitor(xbmc.Monitor):
-    def __init__(self):
+    def __init__(self, port):
         super(ServiceMonitor, self).__init__()
-        self._port = get_repository_port()
+        self._port = port
 
     def onSettingsChanged(self):
         port = get_repository_port()
@@ -32,30 +32,36 @@ class ServiceMonitor(xbmc.Monitor):
 
 
 class HTTPServerRunner(threading.Thread):
-    def __init__(self, monitor, port):
-        self._monitor = monitor
+    def __init__(self, port):
         self._port = port
         self._server = None
         super(HTTPServerRunner, self).__init__()
 
     def run(self):
-        self._server = threaded_http_server("", self._port)
-        self._server.daemon_threads = True
-        logging.debug("Server started at port {}".format(self._port))
-        self._server.serve_until_shutdown(self._monitor.abortRequested)
-        self._server.server_close()
+        self._server = server = threaded_http_server("", self._port)
+        logging.debug("Server started at port %d", self._port)
+        server.serve_forever()
+        logging.debug("Closing server")
+        server.server_close()
+        logging.debug("Server terminated")
 
     def stop(self):
         if self._server is not None:
-            self._server.shutdown_server()
+            self._server.shutdown()
             self._server = None
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+        self.join()
+        return False
 
 
 def run():
     set_logger()
-    monitor = ServiceMonitor()
-    server = HTTPServerRunner(monitor, get_repository_port())
-    server.start()
-    monitor.waitForAbort()
-    server.stop()
-    server.join()
+    port = get_repository_port()
+    with HTTPServerRunner(port):
+        ServiceMonitor(port).waitForAbort()
