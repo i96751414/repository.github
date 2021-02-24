@@ -2,12 +2,16 @@ import json
 import logging
 import re
 from collections import namedtuple, OrderedDict
-from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
-from xml.etree.ElementTree import Element  # nosec
+from xml.etree import ElementTree  # nosec
 
-import requests
-from defusedxml import ElementTree
+try:
+    from urllib import request as ul
+except ImportError:
+    # noinspection PyUnresolvedReferences
+    import urllib2 as ul
+
+from concurrent.futures import ThreadPoolExecutor
 
 from lib.cache import cached
 from lib.kodi import string_types
@@ -63,6 +67,10 @@ def validate_json_schema(data):
         validate_entry_schema(entry)
 
 
+def get_request(url, **kwargs):
+    return ul.urlopen(url, **kwargs).read()
+
+
 class Repository(object):
     def __init__(self, **kwargs):
         self.files = kwargs.get("files", [])
@@ -84,9 +92,7 @@ class Repository(object):
             self._load_data(json.load(f))
 
     def _load_url(self, url):
-        r = requests.get(url)
-        r.raise_for_status()
-        self._load_data(r.json())
+        self._load_data(json.loads(get_request(url)))
 
     def _load_data(self, data):
         for addon_data in data:
@@ -102,7 +108,7 @@ class Repository(object):
 
     @cached(seconds=60 * 60)
     def get_latest_release(self, username, repository, default="master"):
-        data = requests.get(GITHUB_LATEST_RELEASE_URL.format(username=username, repository=repository)).json()
+        data = json.loads(get_request(GITHUB_LATEST_RELEASE_URL.format(username=username, repository=repository)))
         try:
             return data["tag_name"]
         except KeyError:
@@ -120,14 +126,14 @@ class Repository(object):
                 branch=self._get_addon_branch(addon)) + "/addon.xml"
 
         try:
-            return ElementTree.fromstring(requests.get(addon_xml_url).content)
+            return ElementTree.fromstring(get_request(addon_xml_url))
         except Exception as e:
             logging.error("failed getting '%s': %s", addon.id, e, exc_info=True)
             return None
 
     @cached(seconds=60 * 60)
     def get_addons_xml(self):
-        root = Element("addons")
+        root = ElementTree.Element("addons")
         num_threads = min(self._max_threads, len(self._addons))
         if num_threads <= 1:
             results = [self._get_addon_xml(a) for a in self._addons.values()]

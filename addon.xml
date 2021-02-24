@@ -2,18 +2,14 @@
 <addon id="repository.github" name="GitHub Add-on repository" provider-name="i96751414" version="0.0.6">
     <requires>
         <!--<import addon="xbmc.python" version="3.0.0"/>-->
-        <import addon="script.module.requests" version="2.22.0"/>
-        <import addon="script.module.defusedxml" version="0.6.0"/>
-        <!-- futures must be optional so we have py2/3 compatibility -->
-        <import addon="script.module.futures" version="2.2.0" optional="true"/>
     </requires>
-    <extension point="xbmc.python.script" library="default.py"/>
-    <extension point="xbmc.service" library="service.py"/>
     <extension point="xbmc.addon.repository">
         <info>http://127.0.0.1:61234/addons.xml</info>
         <checksum>http://127.0.0.1:61234/addons.xml.md5</checksum>
         <datadir>http://127.0.0.1:61234/</datadir>
     </extension>
+    <extension point="xbmc.python.script" library="default.py"/>
+    <extension point="xbmc.service" library="service.py"/>
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
         <license>See https://github.com/i96751414/repository.github/blob/master/LICENSE</license>
@@ -21,7 +17,7 @@
         <summary lang="en">GitHub virtual Add-on repository</summary>
         <description lang="en">Customizable repository which acts as a proxy for defined GitHub users' add-ons updates.</description>
         <news>
-            - Initial release
+            - Add support to Kodi 19
         </news>
         <assets>
             <icon>icon.png</icon>

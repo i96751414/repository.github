@@ -3,12 +3,11 @@ import os
 import sys
 from zipfile import ZipFile
 
-import requests
 import xbmc
 import xbmcgui
 
 from lib.kodi import ADDON_DATA, ADDON_NAME, translate, notification, get_repository_port, str_to_unicode
-from lib.repository import validate_json_schema
+from lib.repository import validate_json_schema, get_request
 
 if not os.path.exists(ADDON_DATA):
     os.makedirs(ADDON_DATA)
@@ -76,7 +75,7 @@ class Entries(object):
 
 
 def update_repository(notify=False):
-    requests.get("http://127.0.0.1:{}/update".format(get_repository_port()), timeout=2)
+    get_request("http://127.0.0.1:{}/update".format(get_repository_port()), timeout=2)
     if notify:
         notification(translate(30013))
 

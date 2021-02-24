@@ -1,9 +1,9 @@
 import logging
 import os
 import threading
+from xml.etree import ElementTree  # nosec
 
 import xbmc
-from defusedxml import ElementTree
 
 from lib import routes  # noqa
 from lib.httpserver import threaded_http_server
