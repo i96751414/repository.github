@@ -1,7 +1,7 @@
 import os
 
 from lib.entries import ENTRIES_PATH
-from lib.httpserver import ServerHandler, add_get_route
+from lib.httpserver import ServerHandler, add_get_route  # pylint: disable=unused-import
 from lib.kodi import ADDON_PATH
 from lib.repository import Repository
 
