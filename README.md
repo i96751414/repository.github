@@ -33,3 +33,4 @@ Each entry must follow the following schema:
 |assets|false|Dictionary containing string/string key-value pairs, where the key corresponds to the relative asset location and the value corresponds to the real asset location. One can also set "zip" asset, which is a special case for the add-on zip. If an asset is not defined, its location will be automatically evaluated.<br>Note: assets are treated as "new style" format strings with the following keywords - _id_, _username_, _repository_, _branch_, _system_ and _arch_.|
 |asset_prefix|false|Prefix to use on the real asset location when it is automatically evaluated.|
 |repository|false|GitHub repository name. If not set, it is assumed to be the same as the add-on id.|
+|platforms|false|Platforms where the add-on is supported. If not set, it is assumed all platforms are supported.|

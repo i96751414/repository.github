@@ -34,6 +34,7 @@ ENTRY_SCHEMA = {
         "assets": {"type": dict},
         "asset_prefix": {"type": string_types},
         "repository": {"type": string_types},
+        "platforms": {"type": list}
     }
 }
 
@@ -58,6 +59,10 @@ def validate_entry_schema(entry):
             for k, v in value.items():
                 if not (isinstance(k, string_types) and isinstance(v, string_types)):
                     raise InvalidSchemaError("Expected dict[str, str] for '{}'".format(key))
+        elif value_type is list:
+            for v in value:
+                if not isinstance(v, string_types):
+                    raise InvalidSchemaError("Expected list[str] for '{}'".format(key))
 
 
 def validate_json_schema(data):
@@ -76,6 +81,7 @@ class Repository(object):
         self.files = kwargs.get("files", [])
         self.urls = kwargs.get("urls", [])
         self._max_threads = kwargs.get("max_threads", 5)
+        self._platform = PLATFORM.system + "-" + PLATFORM.arch
         self._addons = OrderedDict()
         self.update()
 
@@ -97,6 +103,12 @@ class Repository(object):
     def _load_data(self, data):
         for addon_data in data:
             addon_id = addon_data["id"]
+            platforms = addon_data.get("platforms")
+
+            if platforms and self._platform not in platforms:
+                logging.debug("Skipping addon %s as it does not support platform %s", addon_id, self._platform)
+                continue
+
             self._addons[addon_id] = ADDON(
                 id=addon_id, username=addon_data["username"], branch=addon_data.get("branch"),
                 assets=addon_data.get("assets", {}), asset_prefix=addon_data.get("asset_prefix", ""),

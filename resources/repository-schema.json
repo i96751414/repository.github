@@ -40,6 +40,14 @@
         "type": "string",
         "title": "Github repository",
         "description": "GitHub repository name. If not set, it is assumed to be the same as the add-on id."
+      },
+      "platforms": {
+        "type": "array",
+        "title": "Supported platforms",
+        "description": "Platforms where the add-on is supported. If not set, it is assumed all platforms are supported.",
+        "items": {
+          "type": "string"
+        }
       }
     },
     "required": [
