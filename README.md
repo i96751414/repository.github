@@ -22,8 +22,8 @@ Then, [install from zip](https://kodi.wiki/view/Add-on_manager#How_to_install_fr
 ## Add-on entries
 
 In order to know which repositories to proxy, the virtual repository needs to be provided with a _list of add-on entries_.
-An example can be found [here](https://raw.githubusercontent.com/i96751414/repository.github/master/resources/repository.json).
-Each entry must follow the following schema:
+An example can be found [here](resources/repository.json).
+Each entry must follow the following schema (also available as [json schema](resources/repository-schema.json)):
 
 |Property|Required|Description|
 |--------|--------|-----------|
