@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from lib.cache import cached
 from lib.kodi import string_types
-from lib.os_platform import PLATFORM
+from lib.os_platform import PLATFORM, get_platform_arch
 
 ADDON = namedtuple("ADDON", "id username branch assets asset_prefix repository")
 
@@ -81,7 +81,7 @@ class Repository(object):
         self.files = kwargs.get("files", [])
         self.urls = kwargs.get("urls", [])
         self._max_threads = kwargs.get("max_threads", 5)
-        self._platform = PLATFORM.system + "-" + PLATFORM.arch
+        self._platform = get_platform_arch()
         self._addons = OrderedDict()
         self.update()
 
