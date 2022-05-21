@@ -4,9 +4,11 @@
         <!--<import addon="xbmc.python" version="3.0.0"/>-->
     </requires>
     <extension point="xbmc.addon.repository">
-        <info>http://127.0.0.1:61234/addons.xml</info>
-        <checksum>http://127.0.0.1:61234/addons.xml.md5</checksum>
-        <datadir>http://127.0.0.1:61234/</datadir>
+        <dir>
+            <info>http://127.0.0.1:61234/addons.xml</info>
+            <checksum>http://127.0.0.1:61234/addons.xml.md5</checksum>
+            <datadir>http://127.0.0.1:61234/</datadir>
+        </dir>
     </extension>
     <extension point="xbmc.python.script" library="default.py"/>
     <extension point="xbmc.service" library="service.py"/>
@@ -17,7 +19,7 @@
         <summary lang="en">GitHub virtual Add-on repository</summary>
         <description lang="en">Customizable repository which acts as a proxy for defined GitHub users' add-ons updates.</description>
         <news>
-            - Add support to Kodi 19
+            - Add support to Kodi 20
         </news>
         <assets>
             <icon>icon.png</icon>

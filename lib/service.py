@@ -13,9 +13,9 @@ from lib.kodi import ADDON_PATH, get_repository_port, set_logger
 def update_repository_port(port, xml_path=os.path.join(ADDON_PATH, "addon.xml")):
     base_url = "http://127.0.0.1:{}/".format(port)
     tree = ElementTree.parse(xml_path)
-    tree.find("extension[@point='xbmc.addon.repository']/info").text = base_url + "addons.xml"
-    tree.find("extension[@point='xbmc.addon.repository']/checksum").text = base_url + "addons.xml.md5"
-    tree.find("extension[@point='xbmc.addon.repository']/datadir").text = base_url
+    tree.find("extension[@point='xbmc.addon.repository']/dir/info").text = base_url + "addons.xml"
+    tree.find("extension[@point='xbmc.addon.repository']/dir/checksum").text = base_url + "addons.xml.md5"
+    tree.find("extension[@point='xbmc.addon.repository']/dir/datadir").text = base_url
     tree.write(xml_path, encoding="UTF-8", xml_declaration=True)
 
 

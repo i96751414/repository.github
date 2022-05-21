@@ -3,10 +3,9 @@ import os
 import sys
 from zipfile import ZipFile
 
-import xbmc
 import xbmcgui
 
-from lib.kodi import ADDON_DATA, ADDON_NAME, translate, notification, get_repository_port, str_to_unicode
+from lib.kodi import ADDON_DATA, ADDON_NAME, translate, notification, get_repository_port, str_to_unicode, translatePath
 from lib.repository import validate_json_schema, get_request
 
 if not os.path.exists(ADDON_DATA):
@@ -81,7 +80,7 @@ def update_repository(notify=False):
 
 
 def import_entries():
-    path = str_to_unicode(xbmc.translatePath(xbmcgui.Dialog().browse(1, translate(30002), "files", ".json|.zip")))
+    path = str_to_unicode(translatePath(xbmcgui.Dialog().browse(1, translate(30002), "files", ".json|.zip")))
     if path:
         entries = Entries()
         entries.add_entries_from_file(path)

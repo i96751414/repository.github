@@ -9,12 +9,16 @@ PY3 = sys.version_info.major >= 3
 ADDON = xbmcaddon.Addon()
 
 if PY3:
+    from xbmcvfs import translatePath
+
     translate = ADDON.getLocalizedString
     string_types = str
 
     def str_to_unicode(s):
         return s
 else:
+    from xbmc import translatePath
+
     # noinspection PyUnresolvedReferences
     string_types = basestring  # noqa
 
@@ -28,7 +32,7 @@ ADDON_ID = ADDON.getAddonInfo("id")
 ADDON_NAME = ADDON.getAddonInfo("name")
 ADDON_PATH = str_to_unicode(ADDON.getAddonInfo("path"))
 ADDON_ICON = str_to_unicode(ADDON.getAddonInfo("icon"))
-ADDON_DATA = str_to_unicode(xbmc.translatePath(ADDON.getAddonInfo("profile")))
+ADDON_DATA = str_to_unicode(translatePath(ADDON.getAddonInfo("profile")))
 
 
 def notification(message, heading=ADDON_NAME, icon=ADDON_ICON, time=5000, sound=True):
