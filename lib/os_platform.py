@@ -66,8 +66,9 @@ def get_platform():
 
 
 def dump_platform():
-    return "system: {}\nrelease: {}\nmachine: {}\narchitecture: {}\nmax_size: {}".format(
-        platform.system(), platform.release(), platform.machine(), platform.architecture(), sys.maxsize)
+    return "system: {}\nrelease: {}\nmachine: {}\narchitecture: {}\nmax_size: {} ({:x} {})".format(
+        platform.system(), platform.release(), platform.machine(), platform.architecture(), sys.maxsize,
+        sys.maxsize, ">32b" if sys.maxsize > 2 ** 32 else "<=32b")
 
 
 try:

@@ -6,6 +6,7 @@ from zipfile import ZipFile
 import xbmcgui
 
 from lib.kodi import ADDON_DATA, ADDON_NAME, translate, notification, get_repository_port, str_to_unicode, translatePath
+from lib.os_platform import get_platform_arch, dump_platform
 from lib.repository import validate_json_schema, get_request
 
 if not os.path.exists(ADDON_DATA):
@@ -114,13 +115,18 @@ def clear_entries():
         notification(translate(30011))
 
 
+def about():
+    text = "[B]{}[/B]\n\nDetected platform: {}\n\n{}".format(ADDON_NAME, get_platform_arch(), dump_platform())
+    xbmcgui.Dialog().textviewer(translate(30006), text)
+
+
 def run():
     if len(sys.argv) == 1:
-        selected = xbmcgui.Dialog().select(ADDON_NAME, [translate(30002 + i) for i in range(4)])
+        selected = xbmcgui.Dialog().select(ADDON_NAME, [translate(30002 + i) for i in range(5)])
     elif len(sys.argv) == 2:
         method = sys.argv[1]
         try:
-            selected = ("import_entries", "delete_entries", "clear_entries", "update_repository").index(method)
+            selected = ("import_entries", "delete_entries", "clear_entries", "update_repository", "about").index(method)
         except ValueError:
             raise NotImplementedError("Unknown method '{}'".format(method))
     else:
@@ -134,3 +140,5 @@ def run():
         clear_entries()
     elif selected == 3:
         update_repository(True)
+    elif selected == 4:
+        about()

@@ -42,6 +42,10 @@ msgctxt "#30005"
 msgid "Update repository"
 msgstr ""
 
+msgctxt "#30006"
+msgid "About"
+msgstr ""
+
 msgctxt "#30010"
 msgid "No entries to delete"
 msgstr ""

@@ -7,5 +7,6 @@
         <setting label="30003" type="action" action="RunScript(repository.github, delete_entries)"/>
         <setting label="30004" type="action" action="RunScript(repository.github, clear_entries)"/>
         <setting label="30005" type="action" action="RunScript(repository.github, update_repository)"/>
+        <setting label="30006" type="action" action="RunScript(repository.github, about)"/>
     </category>
 </settings>
