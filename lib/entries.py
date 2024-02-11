@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import xbmcgui
 
 from lib.kodi import ADDON_DATA, ADDON_NAME, translate, notification, get_repository_port, str_to_unicode, translatePath
-from lib.os_platform import get_platform_arch, dump_platform
+from lib.platform_ import get_platform_arch, dump_platform
 from lib.repository import validate_json_schema, get_request
 
 if not os.path.exists(ADDON_DATA):

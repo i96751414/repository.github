@@ -2,35 +2,8 @@ import logging
 import os
 import platform
 import sys
-from collections import namedtuple
 
-
-class Enum:
-    @classmethod
-    def values(cls):
-        return [value for name, value in vars(cls).items() if not name.startswith("_")]
-
-
-class System(Enum):
-    linux = "linux"
-    android = "android"
-    darwin = "darwin"
-    windows = "windows"
-
-
-class Arch(Enum):
-    x64 = "x64"
-    x86 = "x86"
-    arm = "arm"
-    arm64 = "arm64"
-    armv7 = "armv7"
-
-
-Platform = namedtuple("Platform", [
-    "system",  # type:str
-    "version",  # type:str
-    "arch",  # type:str
-])
+from .definitions import Arch, System, Platform
 
 
 def get_platform():
@@ -66,18 +39,6 @@ def get_platform():
 
 
 def dump_platform():
-    return "system: {}\nrelease: {}\nmachine: {}\narchitecture: {}\nmax_size: {} ({:x} {})".format(
+    return "system: {}\nrelease: {}\nmachine: {}\narchitecture: {}\nmax_size: {} ({:x} {})\nplatform: {}".format(
         platform.system(), platform.release(), platform.machine(), platform.architecture(), sys.maxsize,
-        sys.maxsize, ">32b" if sys.maxsize > 2 ** 32 else "<=32b")
-
-
-try:
-    PLATFORM = get_platform()
-except Exception as _e:
-    logging.fatal(_e, exc_info=True)
-    logging.fatal(dump_platform())
-    raise _e
-
-
-def get_platform_arch(sep="-"):
-    return PLATFORM.system + sep + PLATFORM.arch
+        sys.maxsize, ">32b" if sys.maxsize > 2 ** 32 else "<=32b", platform.platform())

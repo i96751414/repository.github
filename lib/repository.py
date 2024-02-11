@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from lib.cache import cached
 from lib.kodi import string_types
-from lib.os_platform import PLATFORM, get_platform_arch
+from lib.platform_ import PLATFORM, get_platform_arch
 
 ADDON = namedtuple("ADDON", "id username branch assets asset_prefix repository")
 
