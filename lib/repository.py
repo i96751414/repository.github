@@ -1,6 +1,5 @@
 import json
 import logging
-import re
 from collections import namedtuple, OrderedDict
 from hashlib import md5
 from xml.etree import ElementTree  # nosec
@@ -77,6 +76,9 @@ def get_request(url, **kwargs):
 
 
 class Repository(object):
+    ADDON_EXTENSION = ".zip"
+    VERSION_SEPARATOR = "-"
+
     def __init__(self, **kwargs):
         self.files = kwargs.get("files", [])
         self.urls = kwargs.get("urls", [])
@@ -170,9 +172,8 @@ class Repository(object):
             return None
         formats = {"id": addon.id, "username": addon.username, "repository": addon.repository,
                    "branch": self._get_addon_branch(addon), "system": PLATFORM.system, "arch": PLATFORM.arch}
-        match = re.match(addon_id + r"-(.+?)\.zip$", asset)
-        if match:
-            formats["version"] = match.group(1)
+        if asset.startswith(addon_id + self.VERSION_SEPARATOR) and asset.endswith(self.ADDON_EXTENSION):
+            formats["version"] = asset[len(addon_id) + len(self.VERSION_SEPARATOR):-len(self.ADDON_EXTENSION)]
             asset = "zip"
             default_asset_url = GITHUB_ZIP_URL
         else:
