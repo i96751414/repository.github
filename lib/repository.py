@@ -5,10 +5,13 @@ from hashlib import md5
 from xml.etree import ElementTree  # nosec
 
 try:
-    from urllib import request as ul
+    from urllib.request import urlopen
+    from urllib.parse import urljoin
 except ImportError:
     # noinspection PyUnresolvedReferences
-    import urllib2 as ul
+    from urllib2 import urlopen
+    # noinspection PyUnresolvedReferences
+    from urlparse import urljoin
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -18,7 +21,7 @@ from lib.platform_ import PLATFORM, get_platform_arch
 
 ADDON = namedtuple("ADDON", "id username branch assets asset_prefix repository")
 
-GITHUB_CONTENT_URL = "https://raw.githubusercontent.com/{username}/{repository}/{branch}"
+GITHUB_CONTENT_BASE_URL = "https://raw.githubusercontent.com/{username}/{repository}/{branch}/"
 GITHUB_RELEASES_URL = "https://api.github.com/repos/{username}/{repository}/releases"
 GITHUB_LATEST_RELEASE_URL = GITHUB_RELEASES_URL + "/latest"
 GITHUB_RELEASE_URL = GITHUB_RELEASES_URL + "/{release}"
@@ -72,7 +75,7 @@ def validate_json_schema(data):
 
 
 def get_request(url, **kwargs):
-    return ul.urlopen(url, **kwargs).read()
+    return urlopen(url, **kwargs).read()
 
 
 class Repository(object):
@@ -123,21 +126,14 @@ class Repository(object):
     @cached(seconds=60 * 60)
     def get_latest_release(self, username, repository, default="master"):
         data = json.loads(get_request(GITHUB_LATEST_RELEASE_URL.format(username=username, repository=repository)))
-        try:
-            return data["tag_name"]
-        except KeyError:
-            return default
+        return data.get("tag_name", default)
 
     def _get_addon_branch(self, addon):
         return addon.branch or self.get_latest_release(addon.username, addon.repository)
 
     def _get_addon_xml(self, addon):
-        try:
-            addon_xml_url = addon.assets["addon.xml"]
-        except KeyError:
-            addon_xml_url = GITHUB_CONTENT_URL.format(
-                username=addon.username, repository=addon.repository,
-                branch=self._get_addon_branch(addon)) + "/addon.xml"
+        addon_xml_url = urljoin(GITHUB_CONTENT_BASE_URL, addon.assets.get("addon.xml", "addon.xml")).format(
+            id=addon.id, username=addon.username, repository=addon.repository, branch=self._get_addon_branch(addon))
 
         try:
             return ElementTree.fromstring(get_request(addon_xml_url))
@@ -177,6 +173,11 @@ class Repository(object):
             asset = "zip"
             default_asset_url = GITHUB_ZIP_URL
         else:
-            default_asset_url = GITHUB_CONTENT_URL + "/" + addon.asset_prefix + asset
+            default_asset_url = GITHUB_CONTENT_BASE_URL + addon.asset_prefix + asset
 
-        return addon.assets.get(asset, default_asset_url).format(**formats)
+        try:
+            asset_url = urljoin(GITHUB_CONTENT_BASE_URL, addon.assets[asset])
+        except KeyError:
+            asset_url = default_asset_url
+
+        return asset_url.format(**formats)
