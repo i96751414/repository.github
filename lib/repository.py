@@ -82,10 +82,10 @@ class Repository(object):
     ADDON_EXTENSION = ".zip"
     VERSION_SEPARATOR = "-"
 
-    def __init__(self, **kwargs):
-        self.files = kwargs.get("files", [])
-        self.urls = kwargs.get("urls", [])
-        self._max_threads = kwargs.get("max_threads", 5)
+    def __init__(self, files=(), urls=(), max_threads=5):
+        self.files = files
+        self.urls = urls
+        self._max_threads = max_threads
         self._platform = get_platform_arch()
         self._addons = OrderedDict()
         self.update()
@@ -146,10 +146,11 @@ class Repository(object):
         root = ElementTree.Element("addons")
         num_threads = min(self._max_threads, len(self._addons))
         if num_threads <= 1:
-            results = [self._get_addon_xml(a) for a in self._addons.values()]
+            results = map(self._get_addon_xml, self._addons.values())
         else:
             with ThreadPoolExecutor(num_threads) as pool:
-                results = list(pool.map(self._get_addon_xml, self._addons.values()))
+                futures = [pool.submit(self._get_addon_xml, addon) for addon in self._addons.values()]
+                results = map(lambda f: f.result(), futures)
 
         for result in results:
             if result is not None:
