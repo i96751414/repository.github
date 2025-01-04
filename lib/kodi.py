@@ -43,7 +43,7 @@ def get_repository_port():
     return int(ADDON.getSetting("repository_port"))
 
 
-class KodiLogHandler(logging.StreamHandler):
+class KodiLogHandler(logging.Handler):
     levels = {
         logging.CRITICAL: xbmc.LOGFATAL,
         logging.ERROR: xbmc.LOGERROR,
@@ -59,9 +59,6 @@ class KodiLogHandler(logging.StreamHandler):
 
     def emit(self, record):
         xbmc.log(self.format(record), self.levels[record.levelno])
-
-    def flush(self):
-        pass
 
 
 def set_logger(name=None, level=logging.NOTSET):
