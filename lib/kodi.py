@@ -1,32 +1,22 @@
 import logging
-import sys
 
 import xbmc
 import xbmcaddon
 import xbmcgui
 
-PY3 = sys.version_info.major >= 3
+from lib.utils import PY3, str_to_unicode
+
 ADDON = xbmcaddon.Addon()
 
 if PY3:
     from xbmcvfs import translatePath
 
     translate = ADDON.getLocalizedString
-    string_types = str
-
-    def str_to_unicode(s):
-        return s
 else:
     from xbmc import translatePath
 
-    # noinspection PyUnresolvedReferences
-    string_types = basestring  # noqa
-
     def translate(*args, **kwargs):
         return ADDON.getLocalizedString(*args, **kwargs).encode("utf-8")
-
-    def str_to_unicode(s):
-        return s.decode("utf-8")
 
 ADDON_ID = ADDON.getAddonInfo("id")
 ADDON_NAME = ADDON.getAddonInfo("name")

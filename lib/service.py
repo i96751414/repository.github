@@ -5,9 +5,11 @@ from xml.etree import ElementTree  # nosec
 
 import xbmc
 
-from lib import routes  # noqa
+from lib.entries import ENTRIES_PATH
 from lib.httpserver import threaded_http_server
 from lib.kodi import ADDON_PATH, get_repository_port, set_logger
+from lib.repository import Repository
+from lib.routes import add_repository_routes
 
 
 def update_repository_port(port, xml_path=os.path.join(ADDON_PATH, "addon.xml")):
@@ -62,6 +64,8 @@ class HTTPServerRunner(threading.Thread):
 
 def run():
     set_logger()
+    add_repository_routes(Repository(
+        files=(os.path.join(ADDON_PATH, "resources", "repository.json"), ENTRIES_PATH)))
     port = get_repository_port()
     with HTTPServerRunner(port):
         ServiceMonitor(port).waitForAbort()

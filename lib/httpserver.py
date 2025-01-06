@@ -13,7 +13,7 @@ except ImportError:
     from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
-class ServerHandler(BaseHTTPRequestHandler):
+class HTTPRequestHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     get_routes = []
 
@@ -88,12 +88,12 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 def threaded_http_server(host, port):
-    return ThreadedHTTPServer((host, port), ServerHandler)
+    return ThreadedHTTPServer((host, port), HTTPRequestHandler)
 
 
 def add_get_route(pattern):
     def wrapper(func):
-        ServerHandler.add_get_route(pattern, func)
+        HTTPRequestHandler.add_get_route(pattern, func)
         return func
 
     return wrapper

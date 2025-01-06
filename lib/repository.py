@@ -17,8 +17,7 @@ except ImportError:
 from concurrent.futures import ThreadPoolExecutor
 
 from lib.cache import cached
-from lib.kodi import string_types
-from lib.platform_ import PLATFORM, get_platform_arch
+from lib.utils import string_types
 
 ADDON = namedtuple("ADDON", "id username branch assets asset_prefix repository")
 
@@ -84,12 +83,18 @@ class Repository(object):
     ADDON_EXTENSION = ".zip"
     VERSION_SEPARATOR = "-"
 
-    def __init__(self, files=(), urls=(), max_threads=5):
+    def __init__(self, files=(), urls=(), max_threads=5, platform=None):
         self.files = files
         self.urls = urls
         self._max_threads = max_threads
-        self._platform = get_platform_arch()
         self._addons = OrderedDict()
+
+        if platform is None:
+            from lib.platform.core import PLATFORM
+            self._platform = PLATFORM
+        else:
+            self._platform = platform
+
         self.update()
 
     def update(self, clear=False):
@@ -108,12 +113,13 @@ class Repository(object):
         self._load_data(json.loads(get_request(url)))
 
     def _load_data(self, data):
+        platform_name = self._platform.name()
         for addon_data in data:
             addon_id = addon_data["id"]
             platforms = addon_data.get("platforms")
 
-            if platforms and self._platform not in platforms:
-                logging.debug("Skipping addon %s as it does not support platform %s", addon_id, self._platform)
+            if platforms and platform_name not in platforms:
+                logging.debug("Skipping addon %s as it does not support platform %s", addon_id, platform_name)
                 continue
 
             self._addons[addon_id] = ADDON(
@@ -169,8 +175,9 @@ class Repository(object):
         addon = self._addons.get(addon_id)
         if addon is None:
             return None
-        formats = {"id": addon.id, "username": addon.username, "repository": addon.repository,
-                   "branch": self._get_addon_branch(addon), "system": PLATFORM.system, "arch": PLATFORM.arch}
+        formats = dict(
+            id=addon.id, username=addon.username, repository=addon.repository,
+            branch=self._get_addon_branch(addon), system=self._platform.system, arch=self._platform.arch)
         if asset.startswith(addon_id + self.VERSION_SEPARATOR) and asset.endswith(self.ADDON_EXTENSION):
             formats["version"] = asset[len(addon_id) + len(self.VERSION_SEPARATOR):-len(self.ADDON_EXTENSION)]
             asset = "zip"

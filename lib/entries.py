@@ -5,9 +5,10 @@ from zipfile import ZipFile
 
 import xbmcgui
 
-from lib.kodi import ADDON_DATA, ADDON_NAME, translate, notification, get_repository_port, str_to_unicode, translatePath
-from lib.platform_ import get_platform_arch, dump_platform
+from lib.kodi import ADDON_DATA, ADDON_NAME, translate, notification, get_repository_port, translatePath
+from lib.platform.core import PLATFORM, dump_platform
 from lib.repository import validate_json_schema, get_request
+from lib.utils import str_to_unicode
 
 if not os.path.exists(ADDON_DATA):
     os.makedirs(ADDON_DATA)
@@ -116,8 +117,8 @@ def clear_entries():
 
 
 def about():
-    text = "[B]{}[/B]\n\nDetected platform: {}\n\n{}".format(ADDON_NAME, get_platform_arch(), dump_platform())
-    xbmcgui.Dialog().textviewer(translate(30006), text)
+    xbmcgui.Dialog().textviewer(translate(30006), "[B]{}[/B]\n\nDetected platform: {}\n\n{}".format(
+        ADDON_NAME, PLATFORM.name(), dump_platform()))
 
 
 def run():
