@@ -1,6 +1,7 @@
 import json
 import logging
 from collections import namedtuple, OrderedDict
+from contextlib import closing
 from hashlib import md5
 from xml.etree import ElementTree  # nosec
 
@@ -75,7 +76,8 @@ def validate_json_schema(data):
 
 
 def get_request(url, **kwargs):
-    return urlopen(url, **kwargs).read()
+    with closing(urlopen(url, **kwargs)) as request:
+        return request.read()
 
 
 class Repository(object):
