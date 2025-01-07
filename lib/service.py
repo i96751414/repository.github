@@ -11,6 +11,10 @@ from lib.kodi import ADDON_PATH, get_repository_port, set_logger
 from lib.repository import Repository
 from lib.routes import add_repository_routes
 
+set_logger()
+add_repository_routes(Repository(
+    files=(os.path.join(ADDON_PATH, "resources", "repository.json"), ENTRIES_PATH)))
+
 
 def update_repository_port(port, xml_path=os.path.join(ADDON_PATH, "addon.xml")):
     base_url = "http://127.0.0.1:{}/".format(port)
@@ -63,9 +67,6 @@ class HTTPServerRunner(threading.Thread):
 
 
 def run():
-    set_logger()
-    add_repository_routes(Repository(
-        files=(os.path.join(ADDON_PATH, "resources", "repository.json"), ENTRIES_PATH)))
     port = get_repository_port()
     with HTTPServerRunner(port):
         ServiceMonitor(port).waitForAbort()

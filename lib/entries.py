@@ -7,8 +7,8 @@ import xbmcgui
 
 from lib.kodi import ADDON_DATA, ADDON_NAME, translate, notification, get_repository_port, translatePath
 from lib.platform.core import PLATFORM, dump_platform
-from lib.repository import validate_json_schema, get_request
-from lib.utils import str_to_unicode
+from lib.repository import validate_json_schema
+from lib.utils import str_to_unicode, request
 
 if not os.path.exists(ADDON_DATA):
     os.makedirs(ADDON_DATA)
@@ -76,9 +76,9 @@ class Entries(object):
 
 
 def update_repository(notify=False):
-    get_request("http://127.0.0.1:{}/update".format(get_repository_port()), timeout=2)
-    if notify:
-        notification(translate(30013))
+    with request("http://127.0.0.1:{}/update".format(get_repository_port()), timeout=2) as r:
+        if notify:
+            notification(translate(30013 if r.status_code == 200 else 30014))
 
 
 def import_entries():

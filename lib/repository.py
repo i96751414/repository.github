@@ -1,31 +1,15 @@
 import json
 import logging
 from collections import namedtuple, OrderedDict
-from contextlib import closing
+from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
 from xml.etree import ElementTree  # nosec
 
-try:
-    from urllib.request import urlopen
-    from urllib.parse import urljoin
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    from urllib2 import urlopen
-    # noinspection PyUnresolvedReferences
-    from urlparse import urljoin
-
-from concurrent.futures import ThreadPoolExecutor
-
 from lib.cache import cached
-from lib.utils import string_types
+from lib.github import GitHubRepositoryApi, GitHubApiError
+from lib.utils import string_types, is_http_like, request
 
-ADDON = namedtuple("ADDON", "id username branch assets asset_prefix repository")
-
-GITHUB_CONTENT_BASE_URL = "https://raw.githubusercontent.com/{username}/{repository}/{branch}/"
-GITHUB_RELEASES_URL = "https://api.github.com/repos/{username}/{repository}/releases"
-GITHUB_LATEST_RELEASE_URL = GITHUB_RELEASES_URL + "/latest"
-GITHUB_RELEASE_URL = GITHUB_RELEASES_URL + "/{release}"
-GITHUB_ZIP_URL = "https://github.com/{username}/{repository}/archive/{branch}.zip"
+Addon = namedtuple("Addon", ("id", "username", "branch", "assets", "asset_prefix", "repository"))
 
 ENTRY_SCHEMA = {
     "required": ["id", "username"],
@@ -42,6 +26,10 @@ ENTRY_SCHEMA = {
 
 
 class InvalidSchemaError(Exception):
+    pass
+
+
+class AddonNotFound(Exception):
     pass
 
 
@@ -74,13 +62,8 @@ def validate_json_schema(data):
         validate_entry_schema(entry)
 
 
-def get_request(url, **kwargs):
-    with closing(urlopen(url, **kwargs)) as request:
-        return request.read()
-
-
 class Repository(object):
-    ADDON_EXTENSION = ".zip"
+    ZIP_EXTENSION = ".zip"
     VERSION_SEPARATOR = "-"
 
     def __init__(self, files=(), urls=(), max_threads=5, platform=None):
@@ -110,7 +93,9 @@ class Repository(object):
             self._load_data(json.load(f))
 
     def _load_url(self, url):
-        self._load_data(json.loads(get_request(url)))
+        with request(url) as r:
+            r.raise_for_status()
+            self._load_data(r.json())
 
     def _load_data(self, data):
         platform_name = self._platform.name()
@@ -122,7 +107,7 @@ class Repository(object):
                 logging.debug("Skipping addon %s as it does not support platform %s", addon_id, platform_name)
                 continue
 
-            self._addons[addon_id] = ADDON(
+            self._addons[addon_id] = Addon(
                 id=addon_id, username=addon_data["username"], branch=addon_data.get("branch"),
                 assets=addon_data.get("assets", {}), asset_prefix=addon_data.get("asset_prefix", ""),
                 repository=addon_data.get("repository", addon_id))
@@ -132,21 +117,30 @@ class Repository(object):
         self.get_latest_release.cache_clear()
 
     @cached(seconds=60 * 60)
-    def get_latest_release(self, username, repository, default="master"):
-        data = json.loads(get_request(GITHUB_LATEST_RELEASE_URL.format(username=username, repository=repository)))
-        return data.get("tag_name", default)
+    def get_latest_release(self, username, repository):
+        repo = GitHubRepositoryApi(username, repository)
+        try:
+            return repo.get_latest_release()
+        except GitHubApiError:
+            return None
 
     def _get_addon_branch(self, addon):
-        return addon.branch or self.get_latest_release(addon.username, addon.repository)
+        if addon.branch:
+            ref = addon.branch
+        else:
+            release = self.get_latest_release(addon.username, addon.repository)
+            ref = release.tag_name if release else "master"
+        return ref
 
     def _get_addon_xml(self, addon):
-        addon_xml_url = urljoin(GITHUB_CONTENT_BASE_URL, addon.assets.get("addon.xml", "addon.xml")).format(
-            id=addon.id, username=addon.username, repository=addon.repository, branch=self._get_addon_branch(addon))
+        with self._get_asset(addon, "addon.xml") as r:
+            r.raise_for_status()
+            addon_xml = r.content
 
         try:
-            return ElementTree.fromstring(get_request(addon_xml_url))
+            return ElementTree.fromstring(addon_xml)
         except Exception as e:
-            logging.error("failed getting '%s': %s", addon.id, e, exc_info=True)
+            logging.error("Failed getting '%s' addon XML: %s", addon.id, e, exc_info=True)
             return None
 
     @cached(seconds=60 * 60)
@@ -171,23 +165,36 @@ class Repository(object):
         m.update(self.get_addons_xml())
         return m.hexdigest().encode("utf-8")
 
-    def get_asset_url(self, addon_id, asset):
+    def get_asset(self, addon_id, asset):
         addon = self._addons.get(addon_id)
         if addon is None:
-            return None
+            raise AddonNotFound("No such addon: {}".format(addon_id))
+        return self._get_asset(addon, asset)
+
+    def _get_asset(self, addon, asset):
+        repo = GitHubRepositoryApi(addon.username, addon.repository)
+        branch = self._get_addon_branch(addon)
         formats = dict(
             id=addon.id, username=addon.username, repository=addon.repository,
-            branch=self._get_addon_branch(addon), system=self._platform.system, arch=self._platform.arch)
-        if asset.startswith(addon_id + self.VERSION_SEPARATOR) and asset.endswith(self.ADDON_EXTENSION):
-            formats["version"] = asset[len(addon_id) + len(self.VERSION_SEPARATOR):-len(self.ADDON_EXTENSION)]
+            branch=branch, system=self._platform.system, arch=self._platform.arch)
+
+        is_zip = asset.startswith(addon.id + self.VERSION_SEPARATOR) and asset.endswith(self.ZIP_EXTENSION)
+        if is_zip:
+            formats["version"] = asset[len(addon.id) + len(self.VERSION_SEPARATOR):-len(self.ZIP_EXTENSION)]
             asset = "zip"
-            default_asset_url = GITHUB_ZIP_URL
-        else:
-            default_asset_url = GITHUB_CONTENT_BASE_URL + addon.asset_prefix + asset
 
         try:
-            asset_url = urljoin(GITHUB_CONTENT_BASE_URL, addon.assets[asset])
+            asset_path = addon.assets[asset].format(**formats)
         except KeyError:
-            asset_url = default_asset_url
+            if is_zip:
+                response = repo.get_zip(branch)
+            else:
+                response = repo.get_contents(addon.asset_prefix.format(**formats) + asset, branch)
+        else:
+            # TODO: add support for release assets for private repos
+            if is_http_like(asset_path):
+                response = request(asset_path)
+            else:
+                response = repo.get_contents(asset_path, branch)
 
-        return asset_url.format(**formats)
+        return response

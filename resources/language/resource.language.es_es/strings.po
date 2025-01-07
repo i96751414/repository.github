@@ -61,3 +61,7 @@ msgstr "Entradas importadas"
 msgctxt "#30013"
 msgid "Repository updated"
 msgstr "Repositorio actualizado"
+
+msgctxt "#30014"
+msgid "Failed updating repository"
+msgstr "Error al actualizar el repositorio"
