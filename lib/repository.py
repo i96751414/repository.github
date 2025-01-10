@@ -9,20 +9,8 @@ from lib.cache import cached
 from lib.github import GitHubRepositoryApi, GitHubApiError
 from lib.utils import string_types, is_http_like, request
 
-Addon = namedtuple("Addon", ("id", "username", "branch", "assets", "asset_prefix", "repository"))
-
-ENTRY_SCHEMA = {
-    "required": ["id", "username"],
-    "properties": {
-        "id": {"type": string_types},
-        "username": {"type": string_types},
-        "branch": {"type": string_types},
-        "assets": {"type": dict},
-        "asset_prefix": {"type": string_types},
-        "repository": {"type": string_types},
-        "platforms": {"type": list}
-    }
-}
+Addon = namedtuple("Addon", ("id", "username", "branch", "assets", "asset_prefix", "repository", "platforms"))
+EntrySchema = namedtuple("EntrySchema", ("required", "validators"))
 
 
 class InvalidSchemaError(Exception):
@@ -33,26 +21,44 @@ class AddonNotFound(Exception):
     pass
 
 
+def validate_string(key, value):
+    if not isinstance(value, string_types):
+        raise InvalidSchemaError("Expected str for '{}'".format(key))
+
+
+def validate_string_map(key, value):
+    if not (isinstance(value, dict)
+            and all(isinstance(k, string_types) and isinstance(v, string_types) for k, v in value.items())):
+        raise InvalidSchemaError("Expected dict[str, str] for '{}'".format(key))
+
+
+def validate_string_list(key, value):
+    if not (isinstance(value, list) and all(isinstance(v, string_types) for v in value)):
+        raise InvalidSchemaError("Expected list[str] for '{}'".format(key))
+
+
+_entry_schema = EntrySchema(required=("id", "username"), validators=dict(
+    id=validate_string,
+    username=validate_string,
+    branch=validate_string,
+    assets=validate_string_map,
+    asset_prefix=validate_string,
+    repository=validate_string,
+    platforms=validate_string_list,
+))
+
+
 def validate_entry_schema(entry):
     if not isinstance(entry, dict):
         raise InvalidSchemaError("Expecting dictionary for entry")
-    for key in ENTRY_SCHEMA["required"]:
+    for key in _entry_schema.required:
         if key not in entry:
             raise InvalidSchemaError("Key '{}' is required".format(key))
     for key, value in entry.items():
-        if key not in ENTRY_SCHEMA["properties"]:
+        validator = _entry_schema.validators.get(key)
+        if not validator:
             raise InvalidSchemaError("Key '{}' is not valid".format(key))
-        value_type = ENTRY_SCHEMA["properties"][key]["type"]
-        if not isinstance(value, value_type):
-            raise InvalidSchemaError("Expected type {} for '{}'".format(value_type.__name__, key))
-        if value_type is dict:
-            for k, v in value.items():
-                if not (isinstance(k, string_types) and isinstance(v, string_types)):
-                    raise InvalidSchemaError("Expected dict[str, str] for '{}'".format(key))
-        elif value_type is list:
-            for v in value:
-                if not isinstance(v, string_types):
-                    raise InvalidSchemaError("Expected list[str] for '{}'".format(key))
+        validator(key, value)
 
 
 def validate_schema(data):
@@ -110,7 +116,7 @@ class Repository(object):
             self._addons[addon_id] = Addon(
                 id=addon_id, username=addon_data["username"], branch=addon_data.get("branch"),
                 assets=addon_data.get("assets", {}), asset_prefix=addon_data.get("asset_prefix", ""),
-                repository=addon_data.get("repository", addon_id))
+                repository=addon_data.get("repository", addon_id), platforms=platforms)
 
     def clear_cache(self):
         self.get_addons_xml.cache_clear()
