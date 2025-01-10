@@ -55,7 +55,7 @@ def validate_entry_schema(entry):
                     raise InvalidSchemaError("Expected list[str] for '{}'".format(key))
 
 
-def validate_json_schema(data):
+def validate_schema(data):
     if not isinstance(data, (list, tuple)):
         raise InvalidSchemaError("Expecting list/tuple for data")
     for entry in data:

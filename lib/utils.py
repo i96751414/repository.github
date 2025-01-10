@@ -1,6 +1,6 @@
-import sys
 import json
 import logging
+import sys
 
 try:
     from urllib.request import urlopen, Request

@@ -1,13 +1,14 @@
 import json
 import os
 import sys
+from collections import OrderedDict
 from zipfile import ZipFile
 
 import xbmcgui
 
 from lib.kodi import ADDON_DATA, ADDON_NAME, translate, notification, get_repository_port, translatePath
 from lib.platform.core import PLATFORM, dump_platform
-from lib.repository import validate_json_schema
+from lib.repository import validate_schema
 from lib.utils import str_to_unicode, request
 
 if not os.path.exists(ADDON_DATA):
@@ -22,57 +23,47 @@ if not os.path.exists(ENTRIES_PATH):
 class Entries(object):
     def __init__(self, path=ENTRIES_PATH):
         self._path = path
-        self._data = []
-        self._ids = []
+        self._data = OrderedDict()
         if os.path.exists(self._path):
             self.load()
 
     def clear(self):
-        self._data = []
-        self._ids = []
+        self._data.clear()
 
     def length(self):
-        return len(self._ids)
+        return len(self._data)
 
     @property
     def ids(self):
-        return list(self._ids)
+        return list(self._data)
 
-    def remove(self, index):
-        self._data.pop(index)
-        self._ids.pop(index)
+    def remove(self, addon_id):
+        self._data.pop(addon_id)
 
     def load(self):
         with open(self._path) as f:
-            self._data = json.load(f)
-        self._ids = [addon["id"] for addon in self._data]
+            self.add_entries_from_data(json.load(f))
 
     def save(self):
         with open(self._path, "w") as f:
-            json.dump(self._data, f)
+            json.dump(list(self._data.values()), f)
 
     def add_entries_from_file(self, path):
         if path.endswith(".zip"):
             with ZipFile(path) as zip_file:
                 for name in zip_file.namelist():
                     if name.endswith(".json"):
-                        self._add_entries_from_data(json.loads(zip_file.read(name)))
+                        self.add_entries_from_data(json.loads(zip_file.read(name)))
         elif path.endswith(".json"):
             with open(path) as f:
-                self._add_entries_from_data(json.load(f))
+                self.add_entries_from_data(json.load(f))
         else:
             raise ValueError("Unknown file extension. Supported extensions are .json and .zip")
 
-    def _add_entries_from_data(self, data):
-        validate_json_schema(data)
+    def add_entries_from_data(self, data):
+        validate_schema(data)
         for entry in data:
-            addon_id = entry["id"]
-            try:
-                index = self._ids.index(addon_id)
-                self._data[index] = entry
-            except ValueError:
-                self._data.append(entry)
-                self._ids.append(addon_id)
+            self._data[entry["id"]] = entry
 
 
 def update_repository(notify=False):
@@ -122,12 +113,13 @@ def about():
 
 
 def run():
+    methods = ("import_entries", "delete_entries", "clear_entries", "update_repository", "about")
     if len(sys.argv) == 1:
-        selected = xbmcgui.Dialog().select(ADDON_NAME, [translate(30002 + i) for i in range(5)])
+        selected = xbmcgui.Dialog().select(ADDON_NAME, [translate(30002 + i) for i in range(len(methods))])
     elif len(sys.argv) == 2:
         method = sys.argv[1]
         try:
-            selected = ("import_entries", "delete_entries", "clear_entries", "update_repository", "about").index(method)
+            selected = methods.index(method)
         except ValueError:
             raise NotImplementedError("Unknown method '{}'".format(method))
     else:
