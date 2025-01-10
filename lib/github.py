@@ -11,9 +11,16 @@ class GitHubApiError(Exception):
 
 
 class GitHubRepositoryApi(object):
-    def __init__(self, username, repository):
-        self._base_url = "https://api.github.com/repos/{username}/{repository}".format(
-            username=username, repository=repository)
+    def __init__(self, username, repository, base_url="https://api.github.com", version="2022-11-28"):
+        self._base_url = "{}/repos/{username}/{repository}".format(
+            base_url, username=username, repository=repository)
+        self._version = version
+
+    def get_repository_info(self):
+        return self._request_json("")
+
+    def get_refs_tags(self):
+        return self._request_json("/git/refs/tags")
 
     def get_release(self, release):
         return self._request_json("/releases/{}".format(release))
@@ -22,26 +29,45 @@ class GitHubRepositoryApi(object):
         return self.get_release("latest")
 
     def get_zip(self, ref=None):
-        return self._request("/zipball/{}".format(ref) if ref else "/zipball")
+        # One could also use "https://github.com/{username}/{repository}/archive/{branch}.zip"
+        # to avoid GitHub API rate limiting
+        return self._request_raw("/zipball/{}".format(ref) if ref else "/zipball")
 
     def get_contents(self, path, ref=None):
-        return self._request(
-            "/contents/{}".format(path),
-            params=dict(ref=ref) if ref else None,
-            headers={"Accept": "application/vnd.github.raw"})
+        # One could also use "https://raw.githubusercontent.com/{username}/{repository}/{branch}/{path}"
+        # to avoid GitHub API rate limiting
+        return self._request_raw("/contents/{}".format(path), params=dict(ref=ref) if ref else None)
 
-    def _request_json(self, url, **kwargs):
-        with self._request(url, **kwargs) as response:
+    def _request_json(self, url, params=None):
+        with self._request(url, params=params, headers={"Accept": "application/vnd.github+json"}) as response:
             return response.json(object_pairs_hook=_Dict)
 
-    def _request(self, url, **kwargs):
-        full_url = self._base_url + url
-        response = request(full_url, **kwargs)
+    def _request_raw(self, url, params=None):
+        return self._request(url, params=params, headers={"Accept": "application/vnd.github.raw"})
 
+    def _request(self, url, params=None, headers=None):
+        full_url = self._base_url + url
+        response = request(full_url, params=params, headers=self._headers(headers))
         if response.status_code >= 400:
             try:
                 response.close()
             finally:
                 raise GitHubApiError("Call to {} failed with HTTP {}".format(full_url, response.status_code))
-
         return response
+
+    def _headers(self, headers):
+        if headers is None:
+            headers = {}
+        headers["X-GitHub-Api-Version"] = self._version
+        return headers
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self._base_url == other._base_url and self._version == other._version
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash((self._base_url, self._version))

@@ -1,6 +1,6 @@
 import time
-from functools import wraps
 from operator import attrgetter
+from threading import Lock
 
 
 class _CacheValue(object):
@@ -62,39 +62,37 @@ def _make_key(args, kwargs, typed, kwd_mark=(object(),), fast_types=(int, str)):
     return _HashedTuple(key)
 
 
-def cached(seconds=60 * 60, max_size=128, typed=False, lru=False):
-    def wrapper(func):
-        cache = {}
+class LoadingCache(object):
+    __slots__ = ["_func", "_store", "_ttl", "_max_size", "_typed", "_lru", "_get_modifier", "_lock"]
 
-        if max_size == 0:
-            # no caching
-            new_func = func
-        else:
-            get_modified = attrgetter("modified")
+    def __init__(self, func, ttl_seconds=60 * 60, max_size=128, typed=False, lru=False):
+        self._func = func
+        self._store = {}
+        self._ttl = ttl_seconds
+        self._max_size = max_size
+        self._typed = typed
+        self._lru = lru
+        self._get_modifier = attrgetter("modified")
+        self._lock = Lock()
 
-            @wraps(func)
-            def new_func(*args, **kwargs):
-                key = _make_key(args, kwargs, typed)
-                cache_entry = cache.get(key)  # type: _CacheValue
-                if cache_entry is None or cache_entry.expired(seconds):
-                    # Check cache size first and clean if necessary
-                    if len(cache) >= max_size:
-                        min_key = min(cache, key=get_modified)
-                        del cache[min_key]
+    def get(self, *args, **kwargs):
+        key = _make_key(args, kwargs, self._typed)
+        with self._lock:
+            cache_entry = self._store.get(key)  # type: _CacheValue
+            if cache_entry is None or cache_entry.expired(self._ttl):
+                # Check cache size first and clean if necessary
+                if len(self._store) >= self._max_size:
+                    min_key = min(self._store, key=self._get_modifier)
+                    del self._store[min_key]
+                result = self._func(*args, **kwargs)
+                self._store[key] = _CacheValue(result)
+            else:
+                if self._lru:
+                    cache_entry.update()
+                result = cache_entry.value
 
-                    result = func(*args, **kwargs)
-                    cache[key] = _CacheValue(result)
-                else:
-                    if lru:
-                        cache_entry.update()
-                    result = cache_entry.value
+        return result
 
-                return result
-
-        def cache_clear():
-            cache.clear()
-
-        new_func.cache_clear = cache_clear
-        return new_func
-
-    return wrapper
+    def clear(self):
+        with self._lock:
+            self._store.clear()

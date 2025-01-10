@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
 from xml.etree import ElementTree  # nosec
 
-from lib.cache import cached
+from lib.cache import LoadingCache
 from lib.github import GitHubRepositoryApi, GitHubApiError
 from lib.utils import string_types, is_http_like, request
 
@@ -68,14 +68,19 @@ def validate_schema(data):
         validate_entry_schema(entry)
 
 
+def remove_prefix(text, prefix):
+    return text[len(prefix):] if text.startswith(prefix) else text
+
+
 class Repository(object):
     ZIP_EXTENSION = ".zip"
     VERSION_SEPARATOR = "-"
 
-    def __init__(self, files=(), urls=(), max_threads=5, platform=None):
+    def __init__(self, files=(), urls=(), max_threads=5, platform=None, cache_ttl=60 * 60, default_branch="main"):
         self.files = files
         self.urls = urls
         self._max_threads = max_threads
+        self._default_branch = default_branch
         self._addons = OrderedDict()
 
         if platform is None:
@@ -84,6 +89,8 @@ class Repository(object):
         else:
             self._platform = platform
 
+        self._addons_xml_cache = LoadingCache(self._get_addons_xml, cache_ttl)
+        self._fallback_ref_cache = LoadingCache(self._get_fallback_ref, cache_ttl)
         self.update()
 
     def update(self, clear=False):
@@ -119,24 +126,8 @@ class Repository(object):
                 repository=addon_data.get("repository", addon_id), platforms=platforms)
 
     def clear_cache(self):
-        self.get_addons_xml.cache_clear()
-        self.get_latest_release.cache_clear()
-
-    @cached(seconds=60 * 60)
-    def get_latest_release(self, username, repository):
-        repo = GitHubRepositoryApi(username, repository)
-        try:
-            return repo.get_latest_release()
-        except GitHubApiError:
-            return None
-
-    def _get_addon_branch(self, addon):
-        if addon.branch:
-            ref = addon.branch
-        else:
-            release = self.get_latest_release(addon.username, addon.repository)
-            ref = release.tag_name if release else "master"
-        return ref
+        self._addons_xml_cache.clear()
+        self._fallback_ref_cache.clear()
 
     def _get_addon_xml(self, addon):
         with self._get_asset(addon, "addon.xml") as r:
@@ -149,8 +140,7 @@ class Repository(object):
             logging.error("Failed getting '%s' addon XML: %s", addon.id, e, exc_info=True)
             return None
 
-    @cached(seconds=60 * 60)
-    def get_addons_xml(self):
+    def _get_addons_xml(self):
         root = ElementTree.Element("addons")
         num_threads = min(self._max_threads, len(self._addons))
         if num_threads <= 1:
@@ -166,6 +156,9 @@ class Repository(object):
 
         return ElementTree.tostring(root, encoding="utf-8", method="xml")
 
+    def get_addons_xml(self):
+        return self._addons_xml_cache.get()
+
     def get_addons_xml_md5(self):
         m = md5()
         m.update(self.get_addons_xml())
@@ -179,7 +172,7 @@ class Repository(object):
 
     def _get_asset(self, addon, asset):
         repo = GitHubRepositoryApi(addon.username, addon.repository)
-        branch = self._get_addon_branch(addon)
+        branch = addon.branch or self._fallback_ref_cache.get(repo)
         formats = dict(
             id=addon.id, username=addon.username, repository=addon.repository,
             branch=branch, system=self._platform.system, arch=self._platform.arch)
@@ -193,6 +186,7 @@ class Repository(object):
             asset_path = addon.assets[asset].format(**formats)
         except KeyError:
             if is_zip:
+                # TODO: check tags first before falling back to latest repo ZIP
                 response = repo.get_zip(branch)
             else:
                 response = repo.get_contents(addon.asset_prefix.format(**formats) + asset, branch)
@@ -204,3 +198,23 @@ class Repository(object):
                 response = repo.get_contents(asset_path, branch)
 
         return response
+
+    def _get_fallback_ref(self, repo):
+        try:
+            return repo.get_latest_release().tag_name
+        except GitHubApiError:
+            pass
+
+        try:
+            for tag in reversed(repo.get_refs_tags()):
+                # TODO: return conditionally based on tag selector
+                return remove_prefix(tag.ref, "refs/tags/")
+        except GitHubApiError:
+            pass
+
+        try:
+            return repo.get_repository_info().default_branch
+        except GitHubApiError:
+            pass
+
+        return self._default_branch
