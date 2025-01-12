@@ -35,6 +35,10 @@ else:
         return s
 
 
+def remove_prefix(text, prefix):
+    return text[len(prefix):] if text.startswith(prefix) else text
+
+
 def is_http_like(s):
     try:
         result = urlparse(s)

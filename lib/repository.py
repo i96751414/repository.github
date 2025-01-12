@@ -5,9 +5,14 @@ from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
 from xml.etree import ElementTree  # nosec
 
+try:
+    from packaging.version import Version
+except ImportError:
+    from distutils.version import LooseVersion as Version
+
 from lib.cache import LoadingCache
 from lib.github import GitHubRepositoryApi, GitHubApiError
-from lib.utils import string_types, is_http_like, request
+from lib.utils import string_types, is_http_like, request, remove_prefix
 
 Addon = namedtuple("Addon", ("id", "username", "branch", "assets", "asset_prefix", "repository", "platforms"))
 EntrySchema = namedtuple("EntrySchema", ("required", "validators"))
@@ -68,10 +73,6 @@ def validate_schema(data):
         validate_entry_schema(entry)
 
 
-def remove_prefix(text, prefix):
-    return text[len(prefix):] if text.startswith(prefix) else text
-
-
 class Repository(object):
     ZIP_EXTENSION = ".zip"
     VERSION_SEPARATOR = "-"
@@ -91,6 +92,7 @@ class Repository(object):
 
         self._addons_xml_cache = LoadingCache(self._get_addons_xml, cache_ttl)
         self._fallback_ref_cache = LoadingCache(self._get_fallback_ref, cache_ttl)
+        self._refs_tags_cache = LoadingCache(self._get_refs_tags, cache_ttl)
         self.update()
 
     def update(self, clear=False):
@@ -128,6 +130,7 @@ class Repository(object):
     def clear_cache(self):
         self._addons_xml_cache.clear()
         self._fallback_ref_cache.clear()
+        self._refs_tags_cache.clear()
 
     def _get_addon_xml(self, addon):
         with self._get_asset(addon, "addon.xml") as r:
@@ -186,8 +189,7 @@ class Repository(object):
             asset_path = addon.assets[asset].format(**formats)
         except KeyError:
             if is_zip:
-                # TODO: check tags first before falling back to latest repo ZIP
-                response = repo.get_zip(branch)
+                response = repo.get_zip(self._get_version_tag(repo, formats["version"], default=branch))
             else:
                 response = repo.get_contents(addon.asset_prefix.format(**formats) + asset, branch)
         else:
@@ -200,21 +202,48 @@ class Repository(object):
         return response
 
     def _get_fallback_ref(self, repo):
+        return (self._get_latest_release_tag(repo)
+                or self._get_matching_tag(repo, lambda _: True)  # TODO: return conditionally based on tag selector
+                or self._get_repository_default_branch(repo)
+                or self._default_branch)
+
+    def _get_matching_tag(self, repo, predicate, default=None):
+        return next((tag_name for tag_name in (
+            remove_prefix(tag.ref, "refs/tags/") for tag in reversed(self._refs_tags_cache.get(repo))
+        ) if predicate(tag_name)), default)
+
+    def _get_version_tag(self, repo, version, default=None):
+        parsed_version = self._try_parse_version(version)
+        if parsed_version is None:
+            predicate = lambda tag: version == tag
+        else:
+            predicate = lambda tag: version == tag or parsed_version == self._try_parse_version(tag)
+        return self._get_matching_tag(repo, predicate, default=default)
+
+    @staticmethod
+    def _get_refs_tags(repo):
+        try:
+            return repo.get_refs_tags()
+        except GitHubApiError:
+            return []
+
+    @staticmethod
+    def _get_latest_release_tag(repo):
         try:
             return repo.get_latest_release().tag_name
         except GitHubApiError:
-            pass
+            return None
 
-        try:
-            for tag in reversed(repo.get_refs_tags()):
-                # TODO: return conditionally based on tag selector
-                return remove_prefix(tag.ref, "refs/tags/")
-        except GitHubApiError:
-            pass
-
+    @staticmethod
+    def _get_repository_default_branch(repo):
         try:
             return repo.get_repository_info().default_branch
         except GitHubApiError:
-            pass
+            return None
 
-        return self._default_branch
+    @staticmethod
+    def _try_parse_version(version, default=None):
+        try:
+            return Version(version)
+        except ValueError:
+            return default

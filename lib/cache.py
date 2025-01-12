@@ -38,7 +38,7 @@ class _HashedTuple(tuple):
         return {}
 
 
-def _make_key(args, kwargs, typed, kwd_mark=(object(),), fast_types=(int, str)):
+def _make_key(args, kwargs, typed, kwd_mark=(_HashedTuple,), fast_types=(int, str)):
     """
     Make a cache key from optionally typed positional and keyword arguments
 
@@ -79,11 +79,14 @@ class LoadingCache(object):
         key = _make_key(args, kwargs, self._typed)
         with self._lock:
             cache_entry = self._store.get(key)  # type: _CacheValue
-            if cache_entry is None or cache_entry.expired(self._ttl):
+            if cache_entry is None:
                 # Check cache size first and clean if necessary
                 if len(self._store) >= self._max_size:
                     min_key = min(self._store, key=self._get_modifier)
                     del self._store[min_key]
+                result = self._func(*args, **kwargs)
+                self._store[key] = _CacheValue(result)
+            elif cache_entry.expired(self._ttl):
                 result = self._func(*args, **kwargs)
                 self._store[key] = _CacheValue(result)
             else:
