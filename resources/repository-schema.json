@@ -41,6 +41,11 @@
         "title": "Github repository",
         "description": "GitHub repository name. If not set, it is assumed to be the same as the add-on id."
       },
+      "tag_pattern": {
+        "type": "string",
+        "title": "Tag RegEx pattern",
+        "description": "The pattern for matching eligible tags. If not set, all tags are considered."
+      },
       "platforms": {
         "type": "array",
         "title": "Supported platforms",

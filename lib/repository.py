@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from collections import namedtuple, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
@@ -14,7 +15,8 @@ from lib.cache import LoadingCache
 from lib.github import GitHubRepositoryApi, GitHubApiError
 from lib.utils import string_types, is_http_like, request, remove_prefix
 
-Addon = namedtuple("Addon", ("id", "username", "branch", "assets", "asset_prefix", "repository", "platforms"))
+Addon = namedtuple("Addon", (
+    "id", "username", "branch", "assets", "asset_prefix", "repository", "tag_pattern", "platforms"))
 EntrySchema = namedtuple("EntrySchema", ("required", "validators"))
 
 
@@ -49,6 +51,7 @@ _entry_schema = EntrySchema(required=("id", "username"), validators=dict(
     assets=validate_string_map,
     asset_prefix=validate_string,
     repository=validate_string,
+    tag_pattern=validate_string,
     platforms=validate_string_list,
 ))
 
@@ -71,6 +74,32 @@ def validate_schema(data):
         raise InvalidSchemaError("Expecting list/tuple for data")
     for entry in data:
         validate_entry_schema(entry)
+
+
+class TagMatchPredicate(object):
+    def __init__(self, version, tag_pattern=None):
+        self._version = version
+        self._tag_pattern = tag_pattern
+        self._tag_group = tag_pattern.groupindex.get("version", 1) if tag_pattern and tag_pattern.groups else None
+        self._parsed_version = self._try_parse_version(version)
+
+    def __call__(self, value):
+        if self._tag_pattern:
+            match = self._tag_pattern.match(value)
+            if not match:
+                return False
+            elif self._tag_group:
+                value = match.group(self._tag_group)
+
+        return value == self._version or (
+                self._parsed_version and self._parsed_version == self._try_parse_version(value))
+
+    @staticmethod
+    def _try_parse_version(version, default=None):
+        try:
+            return Version(version)
+        except ValueError:
+            return default
 
 
 class Repository(object):
@@ -117,15 +146,22 @@ class Repository(object):
         for addon_data in data:
             addon_id = addon_data["id"]
             platforms = addon_data.get("platforms")
+            tag_pattern = addon_data.get("tag_pattern")
 
             if platforms and platform_name not in platforms:
                 logging.debug("Skipping addon %s as it does not support platform %s", addon_id, platform_name)
                 continue
 
             self._addons[addon_id] = Addon(
-                id=addon_id, username=addon_data["username"], branch=addon_data.get("branch"),
-                assets=addon_data.get("assets", {}), asset_prefix=addon_data.get("asset_prefix", ""),
-                repository=addon_data.get("repository", addon_id), platforms=platforms)
+                id=addon_id,
+                username=addon_data["username"],
+                branch=addon_data.get("branch"),
+                assets=addon_data.get("assets", {}),
+                asset_prefix=addon_data.get("asset_prefix", ""),
+                repository=addon_data.get("repository", addon_id),
+                tag_pattern=re.compile(tag_pattern) if tag_pattern else None,
+                platforms=platforms,
+            )
 
     def clear_cache(self):
         self._addons_xml_cache.clear()
@@ -175,7 +211,7 @@ class Repository(object):
 
     def _get_asset(self, addon, asset):
         repo = GitHubRepositoryApi(addon.username, addon.repository)
-        branch = addon.branch or self._fallback_ref_cache.get(repo)
+        branch = addon.branch or self._fallback_ref_cache.get(repo, tag_pattern=addon.tag_pattern)
         formats = dict(
             id=addon.id, username=addon.username, repository=addon.repository,
             branch=branch, system=self._platform.system, arch=self._platform.arch)
@@ -189,7 +225,8 @@ class Repository(object):
             asset_path = addon.assets[asset].format(**formats)
         except KeyError:
             if is_zip:
-                response = repo.get_zip(self._get_version_tag(repo, formats["version"], default=branch))
+                response = repo.get_zip(
+                    self._get_version_tag(repo, formats["version"], tag_pattern=addon.tag_pattern, default=branch))
             else:
                 response = repo.get_contents(addon.asset_prefix.format(**formats) + asset, branch)
         else:
@@ -201,24 +238,20 @@ class Repository(object):
 
         return response
 
-    def _get_fallback_ref(self, repo):
-        return (self._get_latest_release_tag(repo)
-                or self._get_matching_tag(repo, lambda _: True)  # TODO: return conditionally based on tag selector
-                or self._get_repository_default_branch(repo)
-                or self._default_branch)
+    def _get_fallback_ref(self, repo, tag_pattern=None):
+        if tag_pattern is None:
+            ref = self._get_latest_release_tag(repo) or self._get_matching_tag(repo, lambda _: True)
+        else:
+            ref = self._get_matching_tag(repo, tag_pattern.match) or self._get_latest_release_tag(repo)
+        return ref or self._get_repository_default_branch(repo) or self._default_branch
 
     def _get_matching_tag(self, repo, predicate, default=None):
         return next((tag_name for tag_name in (
             remove_prefix(tag.ref, "refs/tags/") for tag in reversed(self._refs_tags_cache.get(repo))
         ) if predicate(tag_name)), default)
 
-    def _get_version_tag(self, repo, version, default=None):
-        parsed_version = self._try_parse_version(version)
-        if parsed_version is None:
-            predicate = lambda tag: version == tag
-        else:
-            predicate = lambda tag: version == tag or parsed_version == self._try_parse_version(tag)
-        return self._get_matching_tag(repo, predicate, default=default)
+    def _get_version_tag(self, repo, version, tag_pattern=None, default=None):
+        return self._get_matching_tag(repo, TagMatchPredicate(version, tag_pattern=tag_pattern), default=default)
 
     @staticmethod
     def _get_refs_tags(repo):
@@ -240,10 +273,3 @@ class Repository(object):
             return repo.get_repository_info().default_branch
         except GitHubApiError:
             return None
-
-    @staticmethod
-    def _try_parse_version(version, default=None):
-        try:
-            return Version(version)
-        except ValueError:
-            return default
