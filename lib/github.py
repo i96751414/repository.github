@@ -28,22 +28,32 @@ class GitHubRepositoryApi(object):
     def get_latest_release(self):
         return self.get_release("latest")
 
+    def get_release_by_tag(self, tag_name):
+        return self.get_release("tags/{}".format(tag_name))
+
+    def get_release_asset(self, asset_id):
+        return self._request(
+            "/releases/assets/{}".format(asset_id),
+            headers={"Accept": "application/octet-stream"})
+
     def get_zip(self, ref=None):
         # One could also use "https://github.com/{username}/{repository}/archive/{branch}.zip"
         # to avoid GitHub API rate limiting
-        return self._request_raw("/zipball/{}".format(ref) if ref else "/zipball")
+        return self._request(
+            "/zipball/{}".format(ref) if ref else "/zipball",
+            headers={"Accept": "application/vnd.github.raw"})
 
     def get_contents(self, path, ref=None):
         # One could also use "https://raw.githubusercontent.com/{username}/{repository}/{branch}/{path}"
         # to avoid GitHub API rate limiting
-        return self._request_raw("/contents/{}".format(path), params=dict(ref=ref) if ref else None)
+        return self._request(
+            "/contents/{}".format(path),
+            params=dict(ref=ref) if ref else None,
+            headers={"Accept": "application/vnd.github.raw"})
 
     def _request_json(self, url, params=None):
         with self._request(url, params=params, headers={"Accept": "application/vnd.github+json"}) as response:
             return response.json(object_pairs_hook=_Dict)
-
-    def _request_raw(self, url, params=None):
-        return self._request(url, params=params, headers={"Accept": "application/vnd.github.raw"})
 
     def _request(self, url, params=None, headers=None):
         full_url = self._base_url + url

@@ -1,5 +1,5 @@
 from lib.httpserver import HTTPRequestHandler, add_get_route
-from lib.repository import Repository, AddonNotFound
+from lib.repository import Repository, NotFoundException
 
 
 def add_repository_routes(repository):
@@ -25,7 +25,7 @@ def add_repository_routes(repository):
                     length=response.headers.get("Content-Length"),
                     content_type=response.headers.get("Content-Type"),
                     content_disposition=response.headers.get("Content-Disposition"))
-        except AddonNotFound:
+        except NotFoundException:
             ctx.send_response_and_end(404)
 
     @add_get_route("/update")

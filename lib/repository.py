@@ -24,7 +24,15 @@ class InvalidSchemaError(Exception):
     pass
 
 
-class AddonNotFound(Exception):
+class NotFoundException(Exception):
+    pass
+
+
+class AddonNotFound(NotFoundException):
+    pass
+
+
+class ReleaseAssetNotFound(NotFoundException):
     pass
 
 
@@ -105,6 +113,7 @@ class TagMatchPredicate(object):
 class Repository(object):
     ZIP_EXTENSION = ".zip"
     VERSION_SEPARATOR = "-"
+    RELEASE_ASSET_PREFIX = "release_asset://"
 
     def __init__(self, files=(), urls=(), max_threads=5, platform=None, cache_ttl=60 * 60, default_branch="main"):
         self.files = files
@@ -231,7 +240,16 @@ class Repository(object):
                 response = repo.get_contents(addon.asset_prefix.format(**formats) + asset, branch)
         else:
             # TODO: add support for release assets for private repos
-            if is_http_like(asset_path):
+            if asset_path.startswith(self.RELEASE_ASSET_PREFIX):
+                release_tag, asset_name = asset_path[len(self.RELEASE_ASSET_PREFIX):].rsplit("/", maxsplit=1)
+                release = repo.get_release_by_tag(release_tag)
+                for release_asset in release.assets:
+                    if release_asset.name == asset_name:
+                        response = repo.get_release_asset(release_asset.id)
+                        break
+                else:
+                    raise ReleaseAssetNotFound("Unable to find release asset: {}".format(asset_path))
+            elif is_http_like(asset_path):
                 response = request(asset_path)
             else:
                 response = repo.get_contents(asset_path, branch)
