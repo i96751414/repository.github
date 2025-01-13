@@ -104,7 +104,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
             chunked = False
         else:
             if chunked:
-                self.send_header("Transfer-encoding", "chunked")
+                self.send_header("Transfer-Encoding", "chunked")
             self.send_header("Connection", "close")
 
         self.end_headers()

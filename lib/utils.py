@@ -80,7 +80,7 @@ class Response(object):
 
     @property
     def raw(self):
-        return self._response.fp
+        return self._response
 
     @property
     def headers(self):
