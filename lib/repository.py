@@ -24,6 +24,10 @@ class InvalidSchemaError(Exception):
     pass
 
 
+class InvalidFormatException(Exception):
+    pass
+
+
 class NotFoundException(Exception):
     pass
 
@@ -231,13 +235,13 @@ class Repository(object):
             asset = "zip"
 
         try:
-            asset_path = addon.assets[asset].format(**formats)
+            asset_path = self._format(addon.assets[asset], **formats)
         except KeyError:
             if is_zip:
                 response = repo.get_zip(
                     self._get_version_tag(repo, formats["version"], tag_pattern=addon.tag_pattern, default=branch))
             else:
-                response = repo.get_contents(addon.asset_prefix.format(**formats) + asset, branch)
+                response = repo.get_contents(self._format(addon.asset_prefix, **formats) + asset, branch)
         else:
             # TODO: add support for release assets for private repos
             if asset_path.startswith(self.RELEASE_ASSET_PREFIX):
@@ -291,3 +295,10 @@ class Repository(object):
             return repo.get_repository_info().default_branch
         except GitHubApiError:
             return None
+
+    @staticmethod
+    def _format(value, **formats):
+        try:
+            return value.format(**formats)
+        except KeyError as e:
+            raise InvalidSchemaError("Format contains an invalid parameter: {}".format(e))
