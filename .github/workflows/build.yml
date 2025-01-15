@@ -46,18 +46,11 @@ jobs:
 
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: build
     if: success() && github.event_name == 'create' && startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Perform release
-        id: create_release
-        uses: actions/create-release@v1
+        run: gh release create "${{ github.ref_name }}" --notes "${{ needs.build.outputs.changelog }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          body: ${{ needs.build.outputs.changelog }}
-          draft: false
-          prerelease: false
