@@ -228,10 +228,10 @@ class Repository(object):
 
     def _get_asset(self, addon, asset):
         repo = GitHubRepositoryApi(addon.username, addon.repository, token=addon.token or self._token)
-        branch = addon.branch or self._fallback_ref_cache.get(repo, tag_pattern=addon.tag_pattern)
+        ref = addon.branch or self._fallback_ref_cache.get(repo, tag_pattern=addon.tag_pattern)
         formats = dict(
             id=addon.id, username=addon.username, repository=addon.repository,
-            branch=branch, system=self._platform.system, arch=self._platform.arch)
+            ref=ref, system=self._platform.system, arch=self._platform.arch)
 
         is_zip = asset.startswith(addon.id + self.VERSION_SEPARATOR) and asset.endswith(self.ZIP_EXTENSION)
         if is_zip:
@@ -243,9 +243,9 @@ class Repository(object):
         except KeyError:
             if is_zip:
                 response = repo.get_zip(
-                    self._get_version_tag(repo, formats["version"], tag_pattern=addon.tag_pattern, default=branch))
+                    self._get_version_tag(repo, formats["version"], tag_pattern=addon.tag_pattern, default=ref))
             else:
-                response = repo.get_contents(self._format(addon.asset_prefix, **formats) + asset, branch)
+                response = repo.get_contents(self._format(addon.asset_prefix, **formats) + asset, ref)
         else:
             if asset_path.startswith(self.RELEASE_ASSET_PREFIX):
                 release_tag, asset_name = asset_path[len(self.RELEASE_ASSET_PREFIX):].rsplit("/", maxsplit=1)
@@ -259,7 +259,7 @@ class Repository(object):
             elif is_http_like(asset_path):
                 response = request(asset_path)
             else:
-                response = repo.get_contents(asset_path, branch)
+                response = repo.get_contents(asset_path, ref)
 
         return response
 

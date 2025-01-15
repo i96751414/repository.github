@@ -24,7 +24,7 @@
       "assets": {
         "type": "object",
         "title": "Repository assets",
-        "description": "Dictionary containing string/string key-value pairs, where the key corresponds to the relative asset location and the value corresponds to the real asset location. One can also set \"zip\" asset, which is a special case for the add-on zip. If an asset is not defined, its location will be automatically evaluated.\nNote: assets are treated as \"new style\" format strings with the following keywords - id, username, repository, branch, system, arch and version (version is available for zip assets only).",
+        "description": "Dictionary containing string/string key-value pairs, where the key corresponds to the relative asset location and the value corresponds to the real asset location. One can also set \"zip\" asset, which is a special case for the add-on zip. If an asset is not defined, its location will be automatically evaluated.\nNote: assets are treated as \"new style\" format strings with the following keywords - id, username, repository, ref, system, arch and version (version is available for zip assets only).",
         "additionalProperties": {
           "type": "string",
           "title": "Asset location",
