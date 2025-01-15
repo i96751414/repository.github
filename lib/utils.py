@@ -51,13 +51,14 @@ def request(url, params=None, data=None, headers=None, **kwargs):
     if params:
         url += "?" + urlencode(params)
     request_params = Request(url, data=data, headers=headers if headers else {})
-    logging.debug("Doing a HTTP {} request to {}".format(request_params.get_method(), url))
+    logging.debug("Doing a HTTP %s request to %s", request_params.get_method(), url)
     try:
         response = urlopen(request_params, **kwargs)
     except HTTPError as e:
         response = e
-    logging.debug("HTTP {} response from {} received with status {}".format(
-        request_params.get_method(), url, response.getcode()))
+    logging.debug(
+        "HTTP %s response from %s received with status %s",
+        request_params.get_method(), url, response.getcode())
     return Response(response)
 
 

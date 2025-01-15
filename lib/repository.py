@@ -141,6 +141,7 @@ class Repository(object):
         self.update()
 
     def update(self, clear=False):
+        logging.debug("Updating repository (clear=%s)", clear)
         if clear:
             self._addons.clear()
         for u in self.urls:
@@ -181,6 +182,7 @@ class Repository(object):
             )
 
     def clear_cache(self):
+        logging.debug("Clearing repository cache")
         self._addons_xml_cache.clear()
         self._fallback_ref_cache.clear()
         self._refs_tags_cache.clear()
@@ -227,8 +229,10 @@ class Repository(object):
         return self._get_asset(addon, asset)
 
     def _get_asset(self, addon, asset):
+        logging.debug("Getting asset for addon %s: %s", addon.id, asset)
         repo = GitHubRepositoryApi(addon.username, addon.repository, token=addon.token or self._token)
         ref = addon.branch or self._fallback_ref_cache.get(repo, tag_pattern=addon.tag_pattern)
+        logging.debug("Using ref %s for addon %s", ref, addon.id)
         formats = dict(
             id=addon.id, username=addon.username, repository=addon.repository,
             ref=ref, system=self._platform.system, arch=self._platform.arch)
@@ -242,8 +246,10 @@ class Repository(object):
             asset_path = self._format(addon.assets[asset], **formats)
         except KeyError:
             if is_zip:
-                response = repo.get_zip(
-                    self._get_version_tag(repo, formats["version"], tag_pattern=addon.tag_pattern, default=ref))
+                version = formats["version"]
+                zip_ref = self._get_version_tag(repo, version, tag_pattern=addon.tag_pattern, default=ref)
+                logging.debug("Automatically detected zip ref. Wanted %s, detected %s", version, zip_ref)
+                response = repo.get_zip(zip_ref)
             else:
                 response = repo.get_contents(self._format(addon.asset_prefix, **formats) + asset, ref)
         else:
