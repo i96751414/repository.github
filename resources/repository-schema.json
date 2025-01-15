@@ -9,26 +9,26 @@
       "id": {
         "type": "string",
         "title": "Add-on ID",
-        "description": "The add-on identifier as in addon.xml"
+        "description": "The add-on identifier as in addon.xml."
       },
       "username": {
         "type": "string",
         "title": "Repository username",
-        "description": "The github repository username"
+        "description": "The github repository username."
       },
       "branch": {
         "type": "string",
         "title": "Repository branch",
-        "description": "The github repository branch. If not defined, it will be the commit of the latest release or, in case there are no releases, master branch."
+        "description": "The github repository branch. If not defined, it will be either 1) the commit of the latest release, 2) the respective tag, 3) the repository default branch, or 4) if all the previous are unable to fetch, \"main\" branch."
       },
       "assets": {
         "type": "object",
         "title": "Repository assets",
-        "description": "Dictionary containing string/string key-value pairs, where the key corresponds to the relative asset location and the value corresponds to the real asset location. One can also set \"zip\" asset, which is a special case for the add-on zip. If an asset is not defined, its location will be automatically evaluated.\nNote: assets are treated as \"new style\" format strings with the following keywords - id, username, repository, branch, system and arch.",
+        "description": "Dictionary containing string/string key-value pairs, where the key corresponds to the relative asset location and the value corresponds to the real asset location. One can also set \"zip\" asset, which is a special case for the add-on zip. If an asset is not defined, its location will be automatically evaluated.\nNote: assets are treated as \"new style\" format strings with the following keywords - id, username, repository, branch, system, arch and version (version is available for zip assets only).",
         "additionalProperties": {
           "type": "string",
           "title": "Asset location",
-          "description": "The real asset location"
+          "description": "The real asset location. Can be either 1) a relative path, a HTTP/HTTPS URL, or a release asset with the following format - \"release_asset://<release_tag>/<asset_name>\"."
         }
       },
       "asset_prefix": {
@@ -45,6 +45,11 @@
         "type": "string",
         "title": "Tag RegEx pattern",
         "description": "The pattern for matching eligible tags. If not set, all tags are considered."
+      },
+      "token": {
+        "type": "string",
+        "title": "Access Token",
+        "description": "The token to use for accessing the repository. If not provided, the repository must have public access."
       },
       "platforms": {
         "type": "array",

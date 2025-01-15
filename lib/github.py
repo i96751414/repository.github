@@ -11,10 +11,11 @@ class GitHubApiError(Exception):
 
 
 class GitHubRepositoryApi(object):
-    def __init__(self, username, repository, base_url="https://api.github.com", version="2022-11-28"):
+    def __init__(self, username, repository, base_url="https://api.github.com", version="2022-11-28", token=None):
         self._base_url = "{}/repos/{username}/{repository}".format(
             base_url, username=username, repository=repository)
         self._version = version
+        self._token = token
 
     def get_repository_info(self):
         return self._request_json("")
@@ -68,16 +69,18 @@ class GitHubRepositoryApi(object):
     def _headers(self, headers):
         if headers is None:
             headers = {}
+        if self._token:
+            headers["Authorization"] = "Bearer {}".format(self._token)
         headers["X-GitHub-Api-Version"] = self._version
         return headers
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return self._base_url == other._base_url and self._version == other._version
+            return self._base_url == other._base_url and self._version == other._version and self._token == other._token
         return NotImplemented
 
     def __ne__(self, other):
         return not self == other
 
     def __hash__(self):
-        return hash((self._base_url, self._version))
+        return hash((self._base_url, self._version, self._token))

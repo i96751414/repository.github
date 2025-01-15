@@ -16,7 +16,7 @@ from lib.github import GitHubRepositoryApi, GitHubApiError
 from lib.utils import string_types, is_http_like, request, remove_prefix
 
 Addon = namedtuple("Addon", (
-    "id", "username", "branch", "assets", "asset_prefix", "repository", "tag_pattern", "platforms"))
+    "id", "username", "branch", "assets", "asset_prefix", "repository", "tag_pattern", "token", "platforms"))
 EntrySchema = namedtuple("EntrySchema", ("required", "validators"))
 
 
@@ -64,6 +64,7 @@ _entry_schema = EntrySchema(required=("id", "username"), validators=dict(
     asset_prefix=validate_string,
     repository=validate_string,
     tag_pattern=validate_string,
+    token=validate_string,
     platforms=validate_string_list,
 ))
 
@@ -119,11 +120,13 @@ class Repository(object):
     VERSION_SEPARATOR = "-"
     RELEASE_ASSET_PREFIX = "release_asset://"
 
-    def __init__(self, files=(), urls=(), max_threads=5, platform=None, cache_ttl=60 * 60, default_branch="main"):
+    def __init__(self, files=(), urls=(), max_threads=5, platform=None,
+                 cache_ttl=60 * 60, default_branch="main", token=None):
         self.files = files
         self.urls = urls
         self._max_threads = max_threads
         self._default_branch = default_branch
+        self._token = token
         self._addons = OrderedDict()
 
         if platform is None:
@@ -173,6 +176,7 @@ class Repository(object):
                 asset_prefix=addon_data.get("asset_prefix", ""),
                 repository=addon_data.get("repository", addon_id),
                 tag_pattern=re.compile(tag_pattern) if tag_pattern else None,
+                token=addon_data.get("token"),
                 platforms=platforms,
             )
 
@@ -223,7 +227,7 @@ class Repository(object):
         return self._get_asset(addon, asset)
 
     def _get_asset(self, addon, asset):
-        repo = GitHubRepositoryApi(addon.username, addon.repository)
+        repo = GitHubRepositoryApi(addon.username, addon.repository, token=addon.token or self._token)
         branch = addon.branch or self._fallback_ref_cache.get(repo, tag_pattern=addon.tag_pattern)
         formats = dict(
             id=addon.id, username=addon.username, repository=addon.repository,
@@ -243,7 +247,6 @@ class Repository(object):
             else:
                 response = repo.get_contents(self._format(addon.asset_prefix, **formats) + asset, branch)
         else:
-            # TODO: add support for release assets for private repos
             if asset_path.startswith(self.RELEASE_ASSET_PREFIX):
                 release_tag, asset_name = asset_path[len(self.RELEASE_ASSET_PREFIX):].rsplit("/", maxsplit=1)
                 release = repo.get_release_by_tag(release_tag)
