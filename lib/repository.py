@@ -159,6 +159,7 @@ class Repository(object):
             self._load_data(r.json())
 
     def _load_data(self, data):
+        validate_schema(data)
         platform_name = self._platform.name()
         for addon_data in data:
             addon_id = addon_data["id"]
