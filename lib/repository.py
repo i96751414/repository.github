@@ -6,14 +6,10 @@ from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
 from xml.etree import ElementTree  # nosec
 
-try:
-    from packaging.version import Version
-except ImportError:
-    from distutils.version import LooseVersion as Version
-
 from lib.cache import LoadingCache
 from lib.github import GitHubRepositoryApi, GitHubApiError
 from lib.utils import string_types, is_http_like, request, remove_prefix
+from lib.version import try_parse_version
 
 Addon = namedtuple("Addon", (
     "id", "username", "branch", "assets", "asset_prefix", "repository", "tag_pattern", "token", "platforms"))
@@ -94,7 +90,7 @@ class TagMatchPredicate(object):
         self._version = version
         self._tag_pattern = tag_pattern
         self._tag_group = tag_pattern.groupindex.get("version", 1) if tag_pattern and tag_pattern.groups else None
-        self._parsed_version = self._try_parse_version(version)
+        self._parsed_version = try_parse_version(version)
 
     def __call__(self, value):
         if self._tag_pattern:
@@ -105,14 +101,7 @@ class TagMatchPredicate(object):
                 value = match.group(self._tag_group)
 
         return value == self._version or (
-                self._parsed_version and self._parsed_version == self._try_parse_version(value))
-
-    @staticmethod
-    def _try_parse_version(version, default=None):
-        try:
-            return Version(version)
-        except ValueError:
-            return default
+                self._parsed_version and self._parsed_version == try_parse_version(value))
 
 
 class Repository(object):
