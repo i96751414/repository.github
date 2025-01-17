@@ -51,6 +51,6 @@ jobs:
     if: success() && github.event_name == 'create' && startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Perform release
-        run: gh release create "${{ github.ref_name }}" --notes "${{ needs.build.outputs.changelog }}"
+        run: gh release create "${{ github.ref_name }}" --notes "${{ needs.build.outputs.changelog }}" --repo "${{ github.repository }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
