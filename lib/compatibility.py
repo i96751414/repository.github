@@ -7,6 +7,8 @@ from xml.etree import ElementTree  # nosec
 import xbmc
 import xbmcaddon
 
+from lib.version import DebianVersion
+
 PY3 = sys.version_info.major >= 3
 
 _digits_re = re.compile(r"(\d+)")
@@ -45,7 +47,7 @@ def import_module(module, version=None):
         addon_path = addon_path.decode("utf-8")
         # noinspection PyUnresolvedReferences
         addon_version = addon_version.decode("utf-8")
-    if version is not None and compare_debian_version(addon_version, version) < 0:
+    if version is not None and DebianVersion(addon_version) < DebianVersion(version):
         raise InvalidModuleVersionError("No valid version for module {}: {} < {}".format(
             module, addon_version, version))
     tree = ElementTree.parse(os.path.join(addon_path, "addon.xml"))
@@ -72,35 +74,3 @@ def install_addon(addon):
 
 def has_addon(addon):
     return xbmc.getCondVisibility("System.HasAddon(" + addon + ")")
-
-
-# Version comparison according to:
-# https://github.com/xbmc/xbmc/blob/251a25f0022bd889012ddd2cdc7f8935020327ba/xbmc/addons/AddonVersion.cpp#L71
-# https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
-def compare_debian_version(a, b):
-    a_components = _digits_re.split(a)
-    b_components = _digits_re.split(b)
-    for i in range(min(len(a_components), len(b_components))):
-        if i % 2 == 0:
-            a_str_components = a_components[i].split("~")
-            b_str_components = b_components[i].split("~")
-            for j in range(min(len(a_str_components), len(b_str_components))):
-                c = compare(a_str_components[j], b_str_components[j])
-                if c != 0:
-                    return c
-            c = compare(len(b_str_components), len(a_str_components))
-        else:
-            c = compare(int(a_components[i]), int(b_components[i]))
-        if c != 0:
-            return c
-    return compare(len(a_components), len(b_components))
-
-
-def compare(a, b):
-    if a == b:
-        ret = 0
-    elif a < b:
-        ret = -1
-    else:
-        ret = 1
-    return ret
