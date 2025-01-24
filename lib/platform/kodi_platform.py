@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+from io import open
 from platform import release
 
 import xbmc
@@ -43,7 +44,7 @@ def get_kodi_platform_from_log():
     # https://github.com/xbmc/xbmc/tree/master/xbmc/utils/SystemInfo.cpp
     # https://github.com/xbmc/xbmc/tree/master/xbmc/application/Application.cpp#L3673
     new_log_path, old_log_path = get_kodi_log_path()
-    with open(old_log_path if os.path.exists(old_log_path) else new_log_path) as f:
+    with open(old_log_path if os.path.exists(old_log_path) else new_log_path, encoding="utf-8") as f:
         # Ignore first line
         next(f)
         # Second line ends with the platform
