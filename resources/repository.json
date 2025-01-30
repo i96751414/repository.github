@@ -2,6 +2,7 @@
   {
     "id": "repository.github",
     "username": "i96751414",
+    "asset_prefix": "https://raw.githubusercontent.com/{username}/{repository}/{ref}/",
     "assets": {
       "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
     }
@@ -9,6 +10,7 @@
   {
     "id": "script.module.cached",
     "username": "i96751414",
+    "asset_prefix": "https://raw.githubusercontent.com/{username}/{repository}/{ref}/",
     "assets": {
       "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
     }
@@ -29,6 +31,7 @@
       "windows-x64",
       "windows-x86"
     ],
+    "asset_prefix": "https://raw.githubusercontent.com/{username}/{repository}/{ref}/",
     "assets": {
       "zip": "https://github.com/{username}/{repository}/releases/download/v{version}/{id}-{version}.{system}_{arch}.zip"
     }
@@ -36,6 +39,7 @@
   {
     "id": "plugin.video.flix",
     "username": "i96751414",
+    "asset_prefix": "https://raw.githubusercontent.com/{username}/{repository}/{ref}/",
     "assets": {
       "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
     }
@@ -43,6 +47,7 @@
   {
     "id": "plugin.image.pdfreader",
     "username": "i96751414",
+    "asset_prefix": "https://raw.githubusercontent.com/{username}/{repository}/{ref}/",
     "assets": {
       "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
     }
@@ -50,8 +55,17 @@
   {
     "id": "service.subtitles.customizer",
     "username": "i96751414",
+    "asset_prefix": "https://raw.githubusercontent.com/{username}/{repository}/{ref}/",
     "assets": {
       "zip": "https://github.com/{username}/{repository}/archive/v{version}.zip"
+    }
+  },
+  {
+    "id": "script.logviewer",
+    "username": "i96751414",
+    "asset_prefix": "https://raw.githubusercontent.com/{username}/{repository}/{ref}/",
+    "assets": {
+      "zip": "https://github.com/{username}/{repository}/archive/{version}.zip"
     }
   }
 ]

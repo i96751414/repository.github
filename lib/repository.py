@@ -239,23 +239,22 @@ class Repository(object):
                 version = formats["version"]
                 zip_ref = self._get_version_tag(repo, version, tag_pattern=addon.tag_pattern, default=ref)
                 logging.debug("Automatically detected zip ref. Wanted %s, detected %s", version, zip_ref)
-                response = repo.get_zip(zip_ref)
+                return repo.get_zip(zip_ref)
+            asset_path = self._format(addon.asset_prefix, **formats) + asset
+
+        if asset_path.startswith(self.RELEASE_ASSET_PREFIX):
+            release_tag, asset_name = asset_path[len(self.RELEASE_ASSET_PREFIX):].rsplit("/", maxsplit=1)
+            release = repo.get_release_by_tag(release_tag)
+            for release_asset in release.assets:
+                if release_asset.name == asset_name:
+                    response = repo.get_release_asset(release_asset.id)
+                    break
             else:
-                response = repo.get_contents(self._format(addon.asset_prefix, **formats) + asset, ref)
+                raise ReleaseAssetNotFound("Unable to find release asset: {}".format(asset_path))
+        elif is_http_like(asset_path):
+            response = request(asset_path)
         else:
-            if asset_path.startswith(self.RELEASE_ASSET_PREFIX):
-                release_tag, asset_name = asset_path[len(self.RELEASE_ASSET_PREFIX):].rsplit("/", maxsplit=1)
-                release = repo.get_release_by_tag(release_tag)
-                for release_asset in release.assets:
-                    if release_asset.name == asset_name:
-                        response = repo.get_release_asset(release_asset.id)
-                        break
-                else:
-                    raise ReleaseAssetNotFound("Unable to find release asset: {}".format(asset_path))
-            elif is_http_like(asset_path):
-                response = request(asset_path)
-            else:
-                response = repo.get_contents(asset_path, ref)
+            response = repo.get_contents(asset_path, ref)
 
         return response
 
