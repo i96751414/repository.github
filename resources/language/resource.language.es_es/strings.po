@@ -46,6 +46,7 @@ msgctxt "#30006"
 msgid "About"
 msgstr "Sobre"
 
+# Entries
 msgctxt "#30010"
 msgid "No entries to delete"
 msgstr "No hay entradas que eliminar"
@@ -65,3 +66,12 @@ msgstr "Repositorio actualizado"
 msgctxt "#30014"
 msgid "Failed updating repository"
 msgstr "Error al actualizar el repositorio"
+
+# Service
+msgctxt "#30020"
+msgid "Detected repository port mismatches. Applying a fix - please restart Kodi so changes take effect."
+msgstr "Se detectaron incompatibilidades en los puertos del repositorio. Se está aplicando una solución - reinicie Kodi para que los cambios surtan efecto."
+
+msgctxt "#30021"
+msgid "Please restart Kodi so the updated port takes effect."
+msgstr "Reinicie Kodi para que el puerto actualizado surta efecto."
