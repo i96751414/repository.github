@@ -63,7 +63,7 @@ class HTTPServerRunner(threading.Thread):
         super(HTTPServerRunner, self).__init__()
 
     def run(self):
-        self._server = server = threaded_http_server("", self._port)
+        self._server = server = threaded_http_server("127.0.0.1", self._port)
         logging.debug("Server started at port %d", self._port)
         server.serve_forever()
         logging.debug("Closing server")

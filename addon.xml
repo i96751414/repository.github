@@ -21,6 +21,7 @@
         <news>
 - Add xtreamcodes to repository
 - Handle repository port mismatches
+- Listen only 127.0.0.1 instead of all interfaces
         </news>
         <assets>
             <icon>icon.png</icon>
