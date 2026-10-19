@@ -69,6 +69,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
         # noinspection PyAttributeOutsideInit
         self._response_started = True
         super(HTTPRequestHandler, self).send_response(*args, **kwargs)
+        # A kept-alive connection holds its handler thread, and Kodi waits for every thread of the
+        # service when it stops it
+        self.send_header("Connection", "close")
 
     def log_message(self, fmt, *args):
         logging.debug(fmt, *args)
