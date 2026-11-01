@@ -131,10 +131,12 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Keep normal HTTP behavior; wake accepted sockets only on close."""
+
     daemon_threads = True
     shutdown_grace_seconds = 3.0
 
     def __init__(self, *args, **kwargs):
+        """Initialize the synchronized registry of accepted connections."""
         self._connection_condition = threading.Condition()
         self._connections = set()
         self._closing = False
