@@ -2,6 +2,9 @@
 
 import logging
 import re
+import socket
+import threading
+import time
 from shutil import copyfileobj
 
 try:
@@ -127,11 +130,56 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    """
-    Handle requests in a separate thread.
-    """
+    """Keep normal HTTP behavior; wake accepted sockets only on close."""
     daemon_threads = True
+    shutdown_grace_seconds = 3.0
 
+    def __init__(self, *args, **kwargs):
+        self._connection_condition = threading.Condition()
+        self._connections = set()
+        self._closing = False
+        super(ThreadedHTTPServer, self).__init__(*args, **kwargs)
+
+    def get_request(self):
+        request, address = super(ThreadedHTTPServer, self).get_request()
+        with self._connection_condition:
+            if self._closing:
+                request.close()
+                raise OSError("HTTP server is closing")
+            self._connections.add(request)
+        return request, address
+
+    def shutdown_request(self, request):
+        # Serialize descriptor teardown with server_close() to avoid racing
+        # socket shutdown against another thread closing/reusing the fd.
+        with self._connection_condition:
+            try:
+                super(ThreadedHTTPServer, self).shutdown_request(request)
+            finally:
+                self._connections.discard(request)
+                self._connection_condition.notify_all()
+
+    def server_close(self):
+        # The service calls this after serve_forever() has stopped. No changes
+        # to connection timeouts, response headers or keep-alive while running.
+        with self._connection_condition:
+            self._closing = True
+        super(ThreadedHTTPServer, self).server_close()
+        with self._connection_condition:
+            for request in tuple(self._connections):
+                try:
+                    request.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass  # Already disconnected.
+            deadline = time.monotonic() + self.shutdown_grace_seconds
+            while self._connections:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    logging.warning(
+                        "HTTP shutdown: %d handler(s) still executing outside "
+                        "the local socket read/write", len(self._connections))
+                    break
+                self._connection_condition.wait(remaining)
 
 def threaded_http_server(host, port):
     return ThreadedHTTPServer((host, port), HTTPRequestHandler)
